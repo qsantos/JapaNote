@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>searchEdictSettings</class>
+ <widget class="QDialog" name="searchEdictSettings">
+  <property name="windowModality">
+   <enum>Qt::NonModal</enum>
+  </property>
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>393</width>
+    <height>308</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="windowTitle">
+   <string>Search EDICT settings</string>
+  </property>
+  <property name="modal">
+   <bool>true</bool>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0">
+   <item>
+    <widget class="QLabel" name="topLabel">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="text">
+      <string>How new notes should be created:</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QGridLayout" name="gridLayout" columnstretch="0,1,0">
+     <item row="7" column="2">
+      <widget class="QLabel" name="idExample">
+       <property name="text">
+        <string>EntL1586910X</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QComboBox" name="definitionBox"/>
+     </item>
+     <item row="4" column="2">
+      <widget class="QLabel" name="kanaExample">
+       <property name="text">
+        <string>あんき</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QComboBox" name="idBox"/>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="deckLabel">
+       <property name="text">
+        <string>Deck</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="0">
+      <widget class="QLabel" name="definitionLabel">
+       <property name="text">
+        <string>Put definition in</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QComboBox" name="furiganaBox"/>
+     </item>
+     <item row="5" column="2">
+      <widget class="QLabel" name="furiganaExample">
+       <property name="text">
+        <string>暗[あん]記[き]</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QComboBox" name="modelBox"/>
+     </item>
+     <item row="6" column="2">
+      <widget class="QLabel" name="definitionExample">
+       <property name="text">
+        <string>memorization</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QComboBox" name="kanjiBox"/>
+     </item>
+     <item row="3" column="2">
+      <widget class="QLabel" name="kanjiExample">
+       <property name="text">
+        <string>暗記</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="kanaLabel">
+       <property name="text">
+        <string>Put kana in</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="kanjiLabel">
+       <property name="text">
+        <string>Put kanji in</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="furiganaLabel">
+       <property name="text">
+        <string>Put furigana in</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QComboBox" name="deckBox">
+       <property name="currentIndex">
+        <number>-1</number>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QComboBox" name="kanaBox"/>
+     </item>
+     <item row="7" column="0">
+      <widget class="QLabel" name="idLabel">
+       <property name="text">
+        <string>Put JMdict ID in</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="modelLabel">
+       <property name="text">
+        <string>Note type</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QLabel" name="noidWarning">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">color:#900;</string>
+     </property>
+     <property name="text">
+      <string>WARNING: We advise you to save the JMdict ID in a field, so that notes can be updated easily later.</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QPushButton" name="closeButton">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="text">
+      <string>Close</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <tabstops>
+  <tabstop>deckBox</tabstop>
+  <tabstop>modelBox</tabstop>
+  <tabstop>kanjiBox</tabstop>
+  <tabstop>kanaBox</tabstop>
+  <tabstop>furiganaBox</tabstop>
+  <tabstop>definitionBox</tabstop>
+  <tabstop>idBox</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>

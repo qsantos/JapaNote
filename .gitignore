@@ -1,3 +1,7 @@
 *.pyc
 __pycache__/
 form*.py
+edict2
+edict2_index
+enamdict
+enamdict_index
