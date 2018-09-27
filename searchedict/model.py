@@ -96,6 +96,7 @@ def add_notes(words):
 
         # add card
         n_newcards += mw.col.addNote(note)
+    mw.reset()
     tooltip(ngettext('{} card added.', '{} cards added.', n_newcards).format(n_newcards))
 
 
