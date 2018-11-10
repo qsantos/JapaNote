@@ -1,4 +1,5 @@
-TARGETS:=formbrowser4.py formsettings4.py formguessids4.py formbrowser5.py formsettings5.py formguessids5.py
+FORMS:=$(wildcard *.ui)
+TARGETS:=$(FORMS:.ui=4.py) $(FORMS:.ui=5.py)
 
 all: $(TARGETS)
 
