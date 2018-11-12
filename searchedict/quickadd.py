@@ -20,10 +20,13 @@ class JavaScriptBridge(QObject):
         word_search.search(pattern, enable_edict=True, enable_deinflect=True, enable_enamdict=False)
         if not word_search.words:
             showInfo('No word found')
+            return 0
         elif len(word_search.words) > 1:
             SearchEDICTWindow.open(pattern)
+            return 0
         else:
             add_notes(word_search.words)
+            return 1
 
     @pyqtSlot()
     def showSettings(self):
@@ -89,7 +92,7 @@ class QuickAddModule:
     var quickadd = document.querySelector('#quick-add-button');
     var pattern = document.querySelector('#quick-add-pattern');
     var settings = document.querySelector('#quick-add-settings');
-    quickadd.addEventListener('click', function(event) { edict.quickAdd(pattern.value) });
+    quickadd.addEventListener('click', function(event) { if (edict.quickAdd(pattern.value)) { pattern.value = ''; } });
     settings.addEventListener('click', function(event) { edict.showSettings() });
     pattern.addEventListener('keypress', function(event) { if (event.keyCode == 13) { edict.quickAdd(pattern.value) } });
     })();
