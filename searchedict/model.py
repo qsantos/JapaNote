@@ -38,12 +38,11 @@ def add_notes(words):
         return
 
     # select deck
-    try:
-        deck_name = mw.col.conf['searchedict_deck']
-    except KeyError:
-        showInfo('Deck is not set')
-        return
-    deck_id = mw.col.decks.id(deck_name)
+    deck_name = mw.col.conf.get('searchedict_deck')
+    if deck_name is None:
+        deck_id = mw.col.decks.selected()
+    else:
+        deck_id = mw.col.decks.id(deck_name)
     deck = mw.col.decks.get(deck_id)
     if deck is None:
         showInfo('Deck not found')
