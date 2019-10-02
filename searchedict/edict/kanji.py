@@ -55,6 +55,9 @@ def normalize_readings(readings):
     readings = {reading.replace(u'-', u'') for reading in readings}
     # convert to hiragana
     readings = {katakana_to_hiragana(reading) for reading in readings}
+    # make ず and づ equivalent readings
+    if readings & {u'ず', u'づ'}:
+        readings |= {u'ず', u'づ'}
     return readings
 
 
