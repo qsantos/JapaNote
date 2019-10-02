@@ -11,7 +11,6 @@ from .searchedict import SearchEDICTWindow
 from .searchsettings import SearchSettingsWindow
 
 
-
 class JavaScriptBridge(QObject):
     @pyqtSlot(str)
     def quickAdd(self, pattern):
