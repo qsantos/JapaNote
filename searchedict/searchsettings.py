@@ -45,12 +45,13 @@ class SearchSettingsWindow(QDialog):
         # field mapping
         model_name = mw.col.conf.setdefault('searchedict_model', models[0])
         model = mw.col.models.byName(model_name)
-        field_names = [''] + [field['name'] for field in model['flds']]
-        set_combobox_from_config(self.form.kanjiBox, field_names, 'searchedict_kanjiField')
-        set_combobox_from_config(self.form.kanaBox, field_names, 'searchedict_kanaField')
-        set_combobox_from_config(self.form.furiganaBox, field_names, 'searchedict_furiganaField')
-        set_combobox_from_config(self.form.definitionBox, field_names, 'searchedict_definitionField')
-        set_combobox_from_config(self.form.idBox, field_names, 'searchedict_idField')
+        if model:
+            field_names = [''] + [field['name'] for field in model['flds']]
+            set_combobox_from_config(self.form.kanjiBox, field_names, 'searchedict_kanjiField')
+            set_combobox_from_config(self.form.kanaBox, field_names, 'searchedict_kanaField')
+            set_combobox_from_config(self.form.furiganaBox, field_names, 'searchedict_furiganaField')
+            set_combobox_from_config(self.form.definitionBox, field_names, 'searchedict_definitionField')
+            set_combobox_from_config(self.form.idBox, field_names, 'searchedict_idField')
 
         # events
         self.set_onChange_combobox(self.form.deckBox, 'searchedict_deck')
@@ -85,6 +86,8 @@ class SearchSettingsWindow(QDialog):
     def update_fieldboxes(self):
         model_name = mw.col.conf['searchedict_model']
         model = mw.col.models.byName(model_name)
+        if not model:
+            return
         field_names = [''] + [field['name'] for field in model['flds']]
 
         self.form.kanjiBox.clear()
