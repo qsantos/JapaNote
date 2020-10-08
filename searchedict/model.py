@@ -51,7 +51,6 @@ def add_notes(words):
     if deck is None:
         showInfo('Deck not found')
         return
-    mw.col.decks.select(deck_id)
 
     # select model
     try:
@@ -63,7 +62,6 @@ def add_notes(words):
     if model is None:
         showInfo('Note type not found')
         return
-    deck['mid'] = model['id']
     model['did'] = deck['id']  # update model's default deck
 
     # check fields
