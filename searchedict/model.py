@@ -1,6 +1,7 @@
 # encoding: utf-8
 from aqt import mw
 from aqt.qt import *
+from anki.notes import Note
 from aqt.utils import showInfo, tooltip
 
 from .edict.search import search_edict, search_enamdict
@@ -77,11 +78,11 @@ def add_notes(words):
     if not check_field(model, 'searchedict_idField'):
         return
 
-    # create new note
     n_newcards = 0
     for word in words:
+        # create new note
+        note = Note(mw.col, model)
         # fill new note
-        note = mw.col.newNote()
         note_set_field(note, 'searchedict_kanjiField', word.kanji)
         note_set_field(note, 'searchedict_kanaField', word.kana)
         note_set_field(note, 'searchedict_furiganaField', word.get_furigana())
