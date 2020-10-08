@@ -28,7 +28,10 @@ def note_set_field(note, config_key, value):
         return
     if model_field is None:
         return
-    note[model_field] = value if value is not None else ''
+    try:
+        note[model_field] = value if value is not None else ''
+    except KeyError:
+        showInfo(f'Note type "{note.model()["name"]}" has not field /{model_field}"')
 
 
 def add_notes(words):
