@@ -23,7 +23,7 @@ class JavaScriptBridge(QObject):
             return 0
         elif len(word_search.words) > 1:
             SearchEDICTWindow.open(pattern)
-            return 0
+            return 1
         else:
             add_notes(word_search.words)
             return 1
