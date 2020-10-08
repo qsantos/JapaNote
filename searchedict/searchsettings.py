@@ -71,7 +71,7 @@ class SearchSettingsWindow(QDialog):
     def set_onChange_combobox(self, combobox, config_key):
         def _(combobox):
             def onChange():
-                mw.col.conf[config_key] = combobox.currentText() if combobox.currentIndex() != 0 else None
+                mw.col.conf[config_key] = combobox.currentText()
                 mw.col.setMod()
                 self.update_warning()
             return onChange
