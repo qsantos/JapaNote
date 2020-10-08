@@ -14,6 +14,7 @@ from .searchsettings import SearchSettingsWindow
 class JavaScriptBridge(QObject):
     @pyqtSlot(str)
     def quickAdd(self, pattern):
+        pattern = pattern.strip()
         if not pattern:
             return
         word_search.search(pattern, enable_edict=True, enable_deinflect=True, enable_enamdict=False)
