@@ -5,6 +5,7 @@ from aqt.utils import showInfo, tooltip
 
 from .view import formguessids, window_to_front, set_combobox_from_config, immediate_redraw
 from .edict.search import search_edict
+from . import furigana
 import anki
 
 class GuessEDICTWindow(QDialog):
@@ -30,7 +31,7 @@ class GuessEDICTWindow(QDialog):
 
         self.form.guessButton.clicked.connect(self.on_click_guess_button)
 
-        self.note_ids = parent.oneModelNotes()
+        self.note_ids = parent.selected_notes()
         if not self.note_ids:
             showInfo('Please select cards first')
             self.close()
@@ -135,9 +136,8 @@ class GuessEDICTWindow(QDialog):
             kanji = None
             kana = None
             if furigana_field:
-                furigana = note[furigana_field]
-                kanji = anki.template.furigana.kanji(furigana)
-                kana = anki.template.furigana.kana(furigana)
+                kanji = furigana.kanji(note[furigana_field])
+                kana = furigana.kana(note[furigana_field])
             elif kanji_field:
                 kanji = note[kanji_field]
             elif kana_field:
