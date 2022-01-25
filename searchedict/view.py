@@ -4,14 +4,9 @@ import sys
 from aqt import mw
 from aqt.qt import *
 
-if sys.version_info[0] > 2:  # Python 3
-    from . import formbrowser5 as formbrowser
-    from . import formsettings5 as formsettings
-    from . import formguessids5 as formguessids
-else:  # Python 2
-    from . import formbrowser4 as formbrowser
-    from . import formsettings4 as formsettings
-    from . import formguessids4 as formguessids
+from . import formbrowser as formbrowser
+from . import formsettings as formsettings
+from . import formguessids as formguessids
 
 
 def window_to_front(window):
