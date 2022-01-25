@@ -10,11 +10,8 @@ except ImportError:  # Python 2
 from .search import default_edict, default_enamdict
 
 # data source
-edict_url = 'http://ftp.monash.edu/pub/nihongo/edict2.gz'
-enamdict_url = 'http://ftp.monash.edu/pub/nihongo/enamdict.gz'
-# TODO
-edict_url = 'http://edict.localhost/edict2.gz'
-enamdict_url = 'http://edict.localhost/enamdict.gz'
+edict_url = 'http://ftp.edrdg.org/pub/Nihongo/edict2.gz'
+enamdict_url = 'http://ftp.edrdg.org/pub/Nihongo/enamdict.gz'
 
 
 def fetch(url, out_file, progress_callback=None, progress_step=2**-6):
