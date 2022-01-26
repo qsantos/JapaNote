@@ -58,7 +58,7 @@ def add_notes(words):
     except KeyError:
         showInfo('Note type is not set')
         return
-    model = mw.col.models.byName(model_name)
+    model = mw.col.models.by_name(model_name)
     if model is None:
         showInfo('Note type not found')
         return
@@ -89,11 +89,8 @@ def add_notes(words):
 
         # check for duplicates if id field is set
         idfield = mw.col.conf.get('searchedict_idField')
-        if idfield is not None:
-            query = "'{}':'{}'".format(idfield, word.get_sequence_number())
-            dupes = mw.col.findNotes(query)
-            if dupes:
-                continue
+        if idfield is not None and mw.col.find_notes(f'{idfield}:{word.get_sequence_number()}'):
+            continue
 
         # add card
         n_newcards += mw.col.addNote(note)
