@@ -6,10 +6,8 @@ from .kanji import load_kanjidic
 kanjidic = None
 
 
-def furigana_from_kanji_kana(kanji, kana, make_default=True):
+def furigana_from_kanji_kana(kanji, kana):
     matches = list(match_from_kanji_kana(kanji, kana))
-    if len(matches) == 0:
-        return u'{}[{}]'.format(kanji, kana) if make_default else None
     return furigana_from_match(matches[0])
 
 
@@ -24,10 +22,12 @@ def match_from_kanji_kana(kanji, kana):
     if kanjidic is None:
         kanjidic = load_kanjidic()
 
+    found = False
     q = deque([([], kanji, kana)])
     while q:
         match_prefix, kanji, kana = q.popleft()
         if not kanji and not kana:
+            found = True
             yield match_prefix
         if not kanji or not kana:
             continue
@@ -48,6 +48,8 @@ def match_from_kanji_kana(kanji, kana):
                 new_kana = kana[len(reading):]
                 new_element = (new_prefixes, new_kanji, new_kana)
                 q.append(new_element)
+    if not found:
+        yield [(kanji, kana)]
 
 
 def furigana_from_match(match):
