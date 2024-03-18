@@ -22,12 +22,11 @@ def match_from_kanji_kana(kanji, kana):
     if kanjidic is None:
         kanjidic = load_kanjidic()
 
-    found = False
+    default = [(kanji, kana)]
     q = deque([([], kanji, kana)])
     while q:
         match_prefix, kanji, kana = q.popleft()
         if not kanji and not kana:
-            found = True
             yield match_prefix
         if not kanji or not kana:
             continue
@@ -48,8 +47,7 @@ def match_from_kanji_kana(kanji, kana):
                 new_kana = kana[len(reading):]
                 new_element = (new_prefixes, new_kanji, new_kana)
                 q.append(new_element)
-    if not found:
-        yield [(kanji, kana)]
+    yield default
 
 
 def furigana_from_match(match):
