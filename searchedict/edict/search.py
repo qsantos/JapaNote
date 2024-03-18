@@ -93,7 +93,6 @@ def search_index(word, filename=default_edict_index):
         low = 0
         f.seek(0, 2)
         high = f.tell()
-        last_line = None
         while high - low > 1:
             middle = (high + low) // 2
             f.seek(middle, 0)
@@ -102,7 +101,6 @@ def search_index(word, filename=default_edict_index):
             line = f.readline()
             if not line:
                 break
-            last_line = line
 
             current_word, offsets = line.split(b' ', 1)
             if current_word == word:
