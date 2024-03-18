@@ -14,7 +14,7 @@ def furigana_from_kanji_kana(kanji, kana):
 def match_from_kanji_kana(kanji, kana):
     """Match kanji against kana
 
-    Return a generators that yields all possible matches of kanji with the kana
+    Return a generator that yields all possible matches of kanji with the kana
     based on their known readings. For instance, for u'牛肉' and u'ぎゅうにく',
     it yields the single match [(u'牛', u'ぎゅう'), (u'肉', u'にく')].
     """
