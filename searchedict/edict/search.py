@@ -1,4 +1,3 @@
-# encoding: utf-8
 import re
 import os.path
 
@@ -30,15 +29,11 @@ class Word:
         self._furigana = None
 
     def __repr__(self):
-        r = u'<{}>'.format(self.kanji)
-        if isinstance(r, str):  # Python 3
-            return r
-        else:  # Python 2
-            return r.encode('utf-8')
+        return '<{}>'.format(self.kanji)
 
     def get_sequence_number(self):
-        last_gloss = self.glosses.split(u'/')[-1]
-        return last_gloss if last_gloss[:4] == u'EntL' else None
+        last_gloss = self.glosses.split('/')[-1]
+        return last_gloss if last_gloss[:4] == 'EntL' else None
 
     def get_furigana(self):
         if self._furigana is None:
@@ -49,10 +44,10 @@ class Word:
 
     def get_meanings(self):
         # pre-parse glosses
-        glosses = self.glosses.split(u'/')
+        glosses = self.glosses.split('/')
         glosses = [
             gloss for gloss in glosses
-            if gloss != u'(P)' and not gloss.startswith(u'EntL')
+            if gloss != '(P)' and not gloss.startswith('EntL')
         ]
 
         # regroup meanings
@@ -62,18 +57,18 @@ class Word:
             match = gloss_pattern.match(gloss)
             nature, meaning_id, meaning = match.groups()
             if meaning_id and last_meaning:
-                meanings.append(u'; '.join(last_meaning))
+                meanings.append('; '.join(last_meaning))
                 last_meaning = []
             last_meaning.append(meaning)
-        meanings.append(u'; '.join(last_meaning))
+        meanings.append('; '.join(last_meaning))
         return meanings
 
     def get_meanings_html(self):
         meanings = self.get_meanings()
         if len(meanings) == 1:
             return meanings[0]
-        items = (u'<li>%s</li>' % meaning for meaning in meanings)
-        list_ = u'<ol>%s</ol>' % u''.join(items)
+        items = ('<li>%s</li>' % meaning for meaning in meanings)
+        list_ = '<ol>%s</ol>' % ''.join(items)
         return list_
 
     def get_type(self):
@@ -129,8 +124,8 @@ def search_edict(word, edict_filename=default_edict, index_filename=default_edic
             if match is None:
                 continue
             line, writings, readings, glosses = match.groups()
-            writings = common_marker.sub(u'', writings).split(u';')
-            readings = common_marker.sub(u'', readings).split(u';') if readings else []
+            writings = common_marker.sub('', writings).split(';')
+            readings = common_marker.sub('', readings).split(';') if readings else []
             yield Word(writings, readings, glosses, line)
 
 

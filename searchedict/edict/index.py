@@ -30,8 +30,8 @@ def load_edict(filename, progress_callback=None, progress_step=2**-6):
 
         # gather information for new word
         line, writings, readings, glosses = match.groups()
-        writings = common_marker.sub(u'', writings).split(u';')
-        readings = common_marker.sub(u'', readings).split(u';') if readings else []
+        writings = common_marker.sub('', writings).split(';')
+        readings = common_marker.sub('', readings).split(';') if readings else []
         word = Word(writings, readings, glosses, line, offset)
 
         # map writings and reading to word

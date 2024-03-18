@@ -1,11 +1,7 @@
-# encoding: utf-8
 import os
 import time
 import gzip
-try:  # Python 3
-    from urllib.request import urlopen
-except ImportError:  # Python 2
-    from urllib import urlopen
+from urllib.request import urlopen
 
 from .search import default_edict, default_enamdict
 

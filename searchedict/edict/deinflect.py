@@ -1,4 +1,3 @@
-# encoding: utf-8
 import os.path
 from collections import defaultdict
 
@@ -38,7 +37,7 @@ class Deinflector:
             self.rules = []
             for line in lines:
                 line = line.decode('utf-8')
-                fields = line.strip().split(u'\t')
+                fields = line.strip().split('\t')
                 # the header does not indicate the size of the array string; it
                 # is simplest to differentiate between the array string and the
                 # actual rules by counting the numbers of fields

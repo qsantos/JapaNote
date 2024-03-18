@@ -1,4 +1,3 @@
-# encoding: utf-8
 import re
 import sys
 
@@ -6,14 +5,14 @@ from .search import search_enamdict
 from .deinflect import Deinflector
 
 ranges = [
-    u'々',  # IDEOGRAPHIC ITERATION MARK (U+3005)
-    u'\u3040-\u30ff',  # Hiragana, Katakana
-    u'\u3400-\u4dbf',  # CJK Unified Ideographs Extension A
-    u'\u4e00-\u9fff',  # CJK Unified Ideographs
-    u'\uf900-\ufaff',  # CJK Compatibility Ideographs
-    u'\uff66-\uff9f',  # Halfwidth and Fullwidth Forms Block (hiragana and katakana)
+    '々',  # IDEOGRAPHIC ITERATION MARK (U+3005)
+    '\u3040-\u30ff',  # Hiragana, Katakana
+    '\u3400-\u4dbf',  # CJK Unified Ideographs Extension A
+    '\u4e00-\u9fff',  # CJK Unified Ideographs
+    '\uf900-\ufaff',  # CJK Compatibility Ideographs
+    '\uff66-\uff9f',  # Halfwidth and Fullwidth Forms Block (hiragana and katakana)
 ]
-fragment_pattern = re.compile(u'[{}]+'.format(u''.join(ranges)))
+fragment_pattern = re.compile('[{}]+'.format(''.join(ranges)))
 
 
 def japanese_text_substrings(text):
@@ -49,7 +48,7 @@ def create_subenamdict(text):
 
 def save_subedict(subedict, filename):
     with open(filename, 'wb') as f:
-        content = u'\n'.join(sorted(subedict)) + u'\n'
+        content = '\n'.join(sorted(subedict)) + '\n'
         f.write(content.encode('utf-8'))
 
 

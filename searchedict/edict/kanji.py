@@ -1,4 +1,3 @@
-# encoding: utf-8
 import re
 import os.path
 
@@ -12,57 +11,48 @@ class Kanji:
         self.meanings = meanings
 
     def __repr__(self):
-        r = u'.{}.'.format(self.character)
-        if isinstance(r, str):  # Python 3
-            return r
-        else:  # Python 2
-            return r.encode('utf-8')
+        return '.{}.'.format(self.character)
 
-
-try:  # Python 2
-    chr = unichr
-except NameError:  # Python 3
-    pass
 
 hiragana = [chr(i) for i in range(0x3040, 0x30A0)]
 katakana = [chr(i) for i in range(0x30A0, 0x3100)]
 
 def hiragana_to_katakana(s):
-    return u''.join(katakana[hiragana.index(c)] if c in hiragana else c for c in s)
+    return ''.join(katakana[hiragana.index(c)] if c in hiragana else c for c in s)
 
 def katakana_to_hiragana(s):
     # NOTE: ignores ヷ ヸ ヹ ヺ
-    return u''.join(hiragana[katakana.index(c)] if c in katakana else c for c in s)
+    return ''.join(hiragana[katakana.index(c)] if c in katakana else c for c in s)
 
-assert hiragana_to_katakana(u'くぼ.む') == u'クボ.ム'
-assert katakana_to_hiragana(u'クボ.ム') == u'くぼ.む'
+assert hiragana_to_katakana('くぼ.む') == 'クボ.ム'
+assert katakana_to_hiragana('クボ.ム') == 'くぼ.む'
 
 dakutens = {
-    u'か': u'が', u'き': u'ぎ', u'く': u'ぐ', u'け': u'げ', u'こ': u'ご',
-    u'さ': u'ざ', u'し': u'じ', u'す': u'ず', u'せ': u'ぜ', u'そ': u'ぞ',
-    u'た': u'だ', u'ち': u'ぢ', u'つ': u'づ', u'て': u'で', u'と': u'ど',
-    u'は': u'ばぱ', u'ひ': u'びぴ', u'ふ': u'ぶぷ', u'へ': u'べぺ', u'ほ': u'ぼぽ',
+    'か': 'が', 'き': 'ぎ', 'く': 'ぐ', 'け': 'げ', 'こ': 'ご',
+    'さ': 'ざ', 'し': 'じ', 'す': 'ず', 'せ': 'ぜ', 'そ': 'ぞ',
+    'た': 'だ', 'ち': 'ぢ', 'つ': 'づ', 'て': 'で', 'と': 'ど',
+    'は': 'ばぱ', 'ひ': 'びぴ', 'ふ': 'ぶぷ', 'へ': 'べぺ', 'ほ': 'ぼぽ',
 }
 
 
 def normalize_readings(readings):
     # strip okurigana
     readings = {
-        reading.split(u'.')[0] if u'.' in reading else reading
+        reading.split('.')[0] if '.' in reading else reading
         for reading in readings
     }
     # remove "-"
-    readings = {reading.replace(u'-', u'') for reading in readings}
+    readings = {reading.replace('-', '') for reading in readings}
     # convert to hiragana
     readings = {katakana_to_hiragana(reading) for reading in readings}
     # make ず and づ equivalent readings
-    if readings & {u'ず', u'づ'}:
-        readings |= {u'ず', u'づ'}
+    if readings & {'ず', 'づ'}:
+        readings |= {'ず', 'づ'}
     return readings
 
 
 def compound_readings(readings):
-    gemination = {reading[:-1] + u'っ' for reading in readings}
+    gemination = {reading[:-1] + 'っ' for reading in readings}
     rendaku = {
         dakuten + reading[1:]
         for reading in readings
