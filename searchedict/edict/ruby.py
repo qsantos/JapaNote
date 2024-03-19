@@ -1,5 +1,4 @@
 from .furigana import match_from_kanji_kana
-from .search import search_edict
 
 
 def ruby_from_match(match):
@@ -31,32 +30,3 @@ def ruby_from_match(match):
 def ruby_from_kanji_kana(kanji, kana):
     matches = list(match_from_kanji_kana(kanji, kana))
     return ruby_from_match(matches[0])
-
-
-def ruby_text(text):
-    start = 0
-    stop = len(text)
-    ret = []
-    while stop > start:
-        try:
-            word = next(search_edict(text[start:stop]))
-        except StopIteration:
-            stop -= 1
-            continue
-        ret.append(ruby_from_kanji_kana(word.kanji, word.kana))
-        start = stop
-        stop = len(text)
-    return ''.join(ret)
-
-
-def main():
-    while True:
-        try:
-            line = input()
-        except EOFError:
-            break
-        print(ruby_text(line))
-
-
-if __name__ == '__main__':
-    main()
