@@ -30,13 +30,12 @@ class Deinflector:
     """A Deinflector instance applies deinflection rules to normalize a word"""
     def __init__(self, deinflect_data_filename=default_deinflect):
         """Populate deinflecting rules from given file"""
-        with open(deinflect_data_filename, 'rb') as f:
+        with open(deinflect_data_filename) as f:
             lines = iter(f)
             next(lines)  # skip header
             reasons = []  # collect the string array for later resolution
             self.rules = []
             for line in lines:
-                line = line.decode('utf-8')
                 fields = line.strip().split('\t')
                 # the header does not indicate the size of the array string; it
                 # is simplest to differentiate between the array string and the
