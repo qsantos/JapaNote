@@ -1,3 +1,5 @@
+import os
+
 from anki.hooks import wrap
 from aqt import mw
 from aqt.deckbrowser import DeckBrowser
