@@ -1,9 +1,10 @@
 from aqt import mw
 from aqt.qt import QMainWindow, Qt
 
+from . import formbrowser
 from .model import add_notes, word_search
 from .searchsettings import SearchSettingsWindow
-from .view import formbrowser, window_to_front
+from .view import window_to_front
 
 
 class SearchEDICTWindow(QMainWindow):

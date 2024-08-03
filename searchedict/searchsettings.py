@@ -1,7 +1,8 @@
 from aqt import mw
 from aqt.qt import QDialog, Qt
 
-from .view import formsettings, set_combobox_from_config, window_to_front
+from . import formsettings
+from .view import set_combobox_from_config, window_to_front
 
 
 class SearchSettingsWindow(QDialog):

@@ -1,10 +1,6 @@
 from aqt import mw
 from aqt.qt import QApplication, Qt
 
-from . import formbrowser as formbrowser
-from . import formguessids as formguessids
-from . import formsettings as formsettings
-
 
 def window_to_front(window):
     window.setWindowState(window.windowState() | Qt.WindowActive)

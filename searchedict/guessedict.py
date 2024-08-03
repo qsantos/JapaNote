@@ -4,9 +4,9 @@ from aqt import mw
 from aqt.qt import QDialog, Qt
 from aqt.utils import showInfo, tooltip
 
-from . import furigana
+from . import formguessids, furigana
 from .edict.search import search_edict
-from .view import formguessids, immediate_redraw, set_combobox_from_config, window_to_front
+from .view import immediate_redraw, set_combobox_from_config, window_to_front
 
 
 class GuessEDICTWindow(QDialog):
