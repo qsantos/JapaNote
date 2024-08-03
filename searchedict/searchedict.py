@@ -62,7 +62,6 @@ class SearchEDICTWindow(QMainWindow):
         word_search.search(pattern)
         # save settings for persistence
         mw.col.conf['searchedict_pattern'] = pattern
-        mw.col.setMod()
 
     def on_add_notes(self) -> None:
         rows = self.form.resultTable.selectionModel().selectedRows()

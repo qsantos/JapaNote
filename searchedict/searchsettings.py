@@ -27,7 +27,6 @@ class SearchSettingsWindow(QDialog):
         self.form.setupUi(self)
 
         mw.col.conf['searchedict_hasopensettings'] = True
-        mw.col.setMod()
 
         decks = sorted(mw.col.decks.allNames())
         models = sorted(mw.col.models.allNames())
@@ -73,14 +72,12 @@ class SearchSettingsWindow(QDialog):
         def _(combobox):
             def onChange():
                 mw.col.conf[config_key] = combobox.currentText()
-                mw.col.setMod()
                 self.update_warning()
             return onChange
         combobox.currentIndexChanged.connect(_(combobox))
 
     def onChangeModel(self) -> None:
         mw.col.conf['searchedict_model'] = self.form.modelBox.currentText()
-        mw.col.setMod()
         self.update_fieldboxes()
         self.update_warning()
 
