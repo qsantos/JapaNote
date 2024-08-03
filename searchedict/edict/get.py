@@ -44,7 +44,8 @@ def fetch(url, out_file, progress_callback=None, progress_step=2**-6):
         return False
 
     # last report
-    progress_callback(1.)
+    if progress_callback is not None:
+        progress_callback(1.)
 
     return True
 
@@ -80,7 +81,8 @@ def extract(in_file, out_file, progress_callback=None, progress_step=2**-6):
                 last = now
 
     # last report
-    progress_callback(1.)
+    if progress_callback is not None:
+        progress_callback(1.)
 
 
 def atomic_fetch(url, filename, progress_callback=None, progress_step=2**-6):
