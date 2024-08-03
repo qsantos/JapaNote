@@ -1,7 +1,7 @@
 from anki.hooks import wrap
 from aqt import mw
 from aqt.deckbrowser import DeckBrowser
-from aqt.qt import *
+from aqt.qt import QObject, pyqtSlot
 from aqt.utils import showInfo
 
 from .model import add_notes, word_search

@@ -1,5 +1,5 @@
 from aqt import mw
-from aqt.qt import *
+from aqt.qt import QDialog, Qt
 from aqt.utils import showInfo, tooltip
 
 from . import furigana

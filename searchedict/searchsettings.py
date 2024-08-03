@@ -1,5 +1,5 @@
 from aqt import mw
-from aqt.qt import *
+from aqt.qt import QDialog, Qt
 
 from .view import formsettings, set_combobox_from_config, window_to_front
 

@@ -1,6 +1,5 @@
-
 from aqt import mw
-from aqt.qt import *
+from aqt.qt import QApplication, Qt
 
 from . import formbrowser as formbrowser
 from . import formguessids as formguessids

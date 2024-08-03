@@ -1,7 +1,7 @@
 from anki.hooks import wrap
 from aqt import mw
 from aqt.deckbrowser import DeckBrowser
-from aqt.qt import *
+from aqt.qt import QThread, pyqtSignal
 from aqt.utils import askUser, showInfo
 
 from .edict.get import fetch_edict, fetch_enamdict

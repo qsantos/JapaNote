@@ -1,5 +1,5 @@
 from aqt import mw
-from aqt.qt import *
+from aqt.qt import QMainWindow, Qt
 
 from .model import add_notes, word_search
 from .searchsettings import SearchSettingsWindow

@@ -1,6 +1,6 @@
 from anki.hooks import addHook
 from aqt import mw
-from aqt.qt import *
+from aqt.qt import QAction
 
 from .getedict import GetEDICTModule
 from .guessedict import GuessEDICTWindow
