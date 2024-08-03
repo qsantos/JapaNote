@@ -22,7 +22,7 @@ def add_menu_entries_to_browser(self):
 
 
 def enable_edict():
-    addHook('browser.setupMenus', add_menu_entries_to_browser)
+    addHook('browser_menus_did_init', add_menu_entries_to_browser)
     QuickAddModule().display()
 
 
