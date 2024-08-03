@@ -41,6 +41,7 @@ lint.select = [
 lint.ignore = [
     "N802",  # Function name `…` should be lowercase
     "RET505",  # Unnecessary `elif` after `return` statement
+    "SLF001",  # Private member accessed: `…`
 ]
 line-length = 119
 
