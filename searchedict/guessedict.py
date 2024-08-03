@@ -5,7 +5,7 @@ from aqt.qt import QDialog, Qt
 from aqt.utils import showInfo, tooltip
 
 from . import formguessids, furigana
-from .edict.search import search_edict
+from .edict2.search import edict
 from .view import immediate_redraw, set_combobox_from_config, window_to_front
 
 
@@ -150,9 +150,9 @@ class GuessEDICTWindow(QDialog):
 
             # search
             if kanji is not None:
-                words = search_edict(kanji)
+                words = edict.search(kanji)
             elif kana is not None:
-                words = search_edict(kana)
+                words = edict.search(kana)
             else:
                 raise NotImplementedError
 

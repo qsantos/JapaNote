@@ -1,8 +1,4 @@
 *.pyc
 form*.py
-edict2
-edict2_index
-enamdict
-enamdict_index
 venv/
 searchedict/meta.json

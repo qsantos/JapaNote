@@ -6,8 +6,8 @@ from aqt import mw
 from aqt.qt import QAbstractTableModel, Qt
 from aqt.utils import showInfo, tooltip
 
-from .edict.deinflect import Deinflector
-from .edict.search import search_edict, search_enamdict
+from .edict2.deinflect import Deinflector
+from .edict2.search import edict, enamdict
 from .searchsettings import SearchSettingsWindow
 
 
@@ -161,11 +161,14 @@ class WordSearchModel(QAbstractTableModel):
         self.words = []
         if enable_edict:
             if enable_deinflect:
-                self.words += list(deinflector.search_edict(word))
+                for candidate in set(deinflector(word)):
+                    for word2 in edict.search(candidate.word):
+                        if word2.get_type() & candidate.type_:
+                            self.words.append(word2)
             else:
-                self.words += list(search_edict(word))
+                self.words += list(edict.search(word))
         if enable_enamdict:
-            self.words += list(search_enamdict(word))
+            self.words += list(enamdict.search(word))
         self.modelReset.emit()
 
 
