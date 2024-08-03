@@ -45,16 +45,6 @@
        </widget>
       </item>
       <item>
-       <widget class="QCheckBox" name="enableDeinflection">
-        <property name="text">
-         <string>Deinflect</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QCheckBox" name="enableENAMDICT">
         <property name="text">
          <string>Search ENAMDICT</string>

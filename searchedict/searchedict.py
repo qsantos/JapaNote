@@ -31,14 +31,12 @@ class SearchEDICTWindow(QMainWindow):
         if pattern is None:
             pattern = mw.col.conf.get('searchedict_pattern', '')
         enable_edict = mw.col.conf.get('searchedict_enableEDICT', True)
-        enable_deinflect = mw.col.conf.get('searchedict_enableDeinflect', True)
         enable_enamdict = mw.col.conf.get('searchedict_enableENAMDICT', False)
 
         self.form = formbrowser.Ui_MainWindow()
         self.form.setupUi(self)
         self.form.pattern.setText(pattern)
         self.form.enableEDICT.setChecked(enable_edict)
-        self.form.enableDeinflection.setChecked(enable_deinflect)
         self.form.enableENAMDICT.setChecked(enable_enamdict)
         self.form.resultTable.setModel(word_search)
 
@@ -46,7 +44,6 @@ class SearchEDICTWindow(QMainWindow):
         self.form.pattern.returnPressed.connect(self.update_search)
         self.form.searchButton.clicked.connect(self.update_search)
         self.form.enableEDICT.clicked.connect(self.update_search)
-        self.form.enableDeinflection.clicked.connect(self.update_search)
         self.form.enableENAMDICT.clicked.connect(self.update_search)
         self.form.addButton.clicked.connect(self.on_add_notes)
         self.form.settingsButton.clicked.connect(SearchSettingsWindow.open)
@@ -68,16 +65,12 @@ class SearchEDICTWindow(QMainWindow):
         # get settings
         pattern = self.form.pattern.text()
         enable_edict = self.form.enableEDICT.isChecked()
-        enable_deinflect = self.form.enableDeinflection.isChecked()
         enable_enamdict = self.form.enableENAMDICT.isChecked()
-        # enable or disable deinflection depending on whether EDICT is enabled
-        self.form.enableDeinflection.setEnabled(enable_edict)
         # update results
-        word_search.search(pattern, enable_edict=enable_edict, enable_deinflect=enable_deinflect, enable_enamdict=enable_enamdict)
+        word_search.search(pattern, enable_edict=enable_edict, enable_enamdict=enable_enamdict)
         # save settings for persistence
         mw.col.conf['searchedict_pattern'] = pattern
         mw.col.conf['searchedict_enableEDICT'] = enable_edict
-        mw.col.conf['searchedict_enableDeinflect'] = enable_deinflect
         mw.col.conf['searchedict_enableENAMDICT'] = enable_enamdict
         mw.col.setMod()
 

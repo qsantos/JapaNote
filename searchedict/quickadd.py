@@ -16,7 +16,7 @@ class JavaScriptBridge(QObject):
         pattern = pattern.strip()
         if not pattern:
             return 0
-        word_search.search(pattern, enable_edict=True, enable_deinflect=True, enable_enamdict=False)
+        word_search.search(pattern, enable_edict=True, enable_enamdict=False)
         if not word_search.words:
             showInfo('No word found')
             return 0
