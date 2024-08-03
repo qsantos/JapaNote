@@ -1,5 +1,6 @@
 import os.path
 import re
+from typing import Iterator, Optional
 
 from .furigana import furigana_from_kanji_kana
 
@@ -16,7 +17,7 @@ gloss_pattern = re.compile(r'^(?:\(([^0-9]\S*)\) )?(?:\(([0-9]+)\) )?(.*)')
 
 
 class Word:
-    def __init__(self, writings, readings, glosses, edict_entry, edict_offset=None):
+    def __init__(self, writings: list[str], readings: list[str], glosses: str, edict_entry: str, edict_offset: Optional[int] = None) -> None:
         self.writings = writings
         self.readings = readings
         self.glosses = glosses
@@ -26,23 +27,23 @@ class Word:
         self.kanji = self.writings[0]
         self.kana = self.readings[0] if self.readings else self.kanji
 
-        self._furigana = None
+        self._furigana: Optional[str] = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<{self.kanji}>'
 
-    def get_sequence_number(self):
+    def get_sequence_number(self) -> Optional[str]:
         last_gloss = self.glosses.split('/')[-1]
         return last_gloss if last_gloss[:4] == 'EntL' else None
 
-    def get_furigana(self):
+    def get_furigana(self) -> str:
         if self._furigana is None:
             kanji = self.kanji
             kana = self.kana
             self._furigana = furigana_from_kanji_kana(kanji, kana)
         return self._furigana
 
-    def get_meanings(self):
+    def get_meanings(self) -> list[str]:
         # pre-parse glosses
         glosses = self.glosses.split('/')
         glosses = [
@@ -55,6 +56,7 @@ class Word:
         last_meaning = []
         for gloss in glosses:
             match = gloss_pattern.match(gloss)
+            assert match is not None
             nature, meaning_id, meaning = match.groups()
             if meaning_id and last_meaning:
                 meanings.append('; '.join(last_meaning))
@@ -63,7 +65,7 @@ class Word:
         meanings.append('; '.join(last_meaning))
         return meanings
 
-    def get_meanings_html(self):
+    def get_meanings_html(self) -> str:
         meanings = self.get_meanings()
         if len(meanings) == 1:
             return meanings[0]
@@ -71,7 +73,7 @@ class Word:
         list_ = '<ol>%s</ol>' % ''.join(items)
         return list_
 
-    def get_type(self):
+    def get_type(self) -> int:
         """Return type mask for deinflections"""
         type_ = 1<<7
         if re.search(r'\bv1\b', self.glosses):
@@ -87,8 +89,8 @@ class Word:
         return type_
 
 
-def search_index(word, filename=default_edict_index):
-    word = word.encode('utf-8')
+def search_index(word: str, filename: str = default_edict_index) -> Iterator[int]:
+    word_bytes = word.encode('utf-8')
     with open(filename, mode='rb') as f:
         low = 0
         f.seek(0, 2)
@@ -103,17 +105,17 @@ def search_index(word, filename=default_edict_index):
                 break
 
             current_word, offsets = line.split(b' ', 1)
-            if current_word == word:
+            if current_word == word_bytes:
                 for offset in offsets.split(b' '):
                     yield int(offset)
                 return
-            if word < current_word:
+            if word_bytes < current_word:
                 high = middle
-            elif word > current_word:
+            elif word_bytes > current_word:
                 low = middle
 
 
-def search_edict(word, edict_filename=default_edict, index_filename=default_edict_index):
+def search_edict(word: str, edict_filename: str = default_edict, index_filename: str = default_edict_index) -> Iterator[Word]:
     with open(edict_filename, mode='rb') as f:
         for offset in search_index(word, index_filename):
             f.seek(offset, 0)
@@ -127,5 +129,5 @@ def search_edict(word, edict_filename=default_edict, index_filename=default_edic
             yield Word(writings, readings, glosses, line)
 
 
-def search_enamdict(word, enamdict_filename=default_enamdict, index_filename=default_enamdict_index):
+def search_enamdict(word: str, enamdict_filename: str = default_enamdict, index_filename: str = default_enamdict_index) -> Iterator[Word]:
     return search_edict(word, enamdict_filename, index_filename)

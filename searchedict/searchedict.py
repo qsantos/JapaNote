@@ -1,3 +1,5 @@
+from typing import Optional
+
 from aqt import mw
 from aqt.qt import QMainWindow, Qt
 
@@ -18,12 +20,12 @@ class SearchEDICTWindow(QMainWindow):
             window_to_front(cls.instance)
         return cls.instance
 
-    def closeEvent(self, evt):
+    def closeEvent(self, evt) -> None:
         type(self).instance = None
         self.hide()
         evt.accept()
 
-    def __init__(self, pattern=None):
+    def __init__(self, pattern: Optional[str] = None) -> None:
         QMainWindow.__init__(self)
 
         if pattern is None:
@@ -58,11 +60,11 @@ class SearchEDICTWindow(QMainWindow):
         self.setWindowState(Qt.WindowMaximized)
         self.show()
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event) -> None:
         if event.key() == Qt.Key_Escape:
             self.close()
 
-    def update_search(self):
+    def update_search(self) -> None:
         # get settings
         pattern = self.form.pattern.text()
         enable_edict = self.form.enableEDICT.isChecked()
@@ -79,7 +81,7 @@ class SearchEDICTWindow(QMainWindow):
         mw.col.conf['searchedict_enableENAMDICT'] = enable_enamdict
         mw.col.setMod()
 
-    def on_add_notes(self):
+    def on_add_notes(self) -> None:
         rows = self.form.resultTable.selectionModel().selectedRows()
         words = [
             word_search.words[index.row()]

@@ -1,5 +1,6 @@
 from anki.hooks import addHook
 from aqt import mw
+from aqt.browser import Browser
 from aqt.qt import QAction
 
 from .getedict import GetEDICTModule
@@ -8,7 +9,7 @@ from .quickadd import QuickAddModule
 from .searchedict import SearchEDICTWindow
 
 
-def add_menu_entries_to_browser(self):
+def add_menu_entries_to_browser(self: Browser) -> None:
     menu = self.form.menuEdit
     menu.addSeparator()
 
@@ -21,12 +22,12 @@ def add_menu_entries_to_browser(self):
     menu.addAction(action)
 
 
-def enable_edict():
+def enable_edict() -> None:
     addHook('browser_menus_did_init', add_menu_entries_to_browser)
     QuickAddModule().display()
 
 
-def main():
+def main() -> None:
     GetEDICTModule().auto(enable_edict)
 
 

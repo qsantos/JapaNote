@@ -16,12 +16,12 @@ class SearchSettingsWindow(QDialog):
             window_to_front(cls.instance)
         return cls.instance
 
-    def closeEvent(self, evt):
+    def closeEvent(self, evt) -> None:
         type(self).instance = None
         self.hide()
         evt.accept()
 
-    def __init__(self):
+    def __init__(self) -> None:
         QDialog.__init__(self)
         self.form = formsettings.Ui_searchEdictSettings()
         self.form.setupUi(self)
@@ -65,11 +65,11 @@ class SearchSettingsWindow(QDialog):
 
         self.show()
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event) -> None:
         if event.key() == Qt.Key_Escape:
             self.close()
 
-    def set_onChange_combobox(self, combobox, config_key):
+    def set_onChange_combobox(self, combobox, config_key) -> None:
         def _(combobox):
             def onChange():
                 mw.col.conf[config_key] = combobox.currentText()
@@ -78,13 +78,13 @@ class SearchSettingsWindow(QDialog):
             return onChange
         combobox.currentIndexChanged.connect(_(combobox))
 
-    def onChangeModel(self):
+    def onChangeModel(self) -> None:
         mw.col.conf['searchedict_model'] = self.form.modelBox.currentText()
         mw.col.setMod()
         self.update_fieldboxes()
         self.update_warning()
 
-    def update_fieldboxes(self):
+    def update_fieldboxes(self) -> None:
         model_name = mw.col.conf['searchedict_model']
         model = mw.col.models.byName(model_name)
         if not model:
@@ -103,7 +103,7 @@ class SearchSettingsWindow(QDialog):
         self.form.definitionBox.addItems(field_names)
         self.form.idBox.addItems(field_names)
 
-    def update_warning(self):
+    def update_warning(self) -> None:
         if mw.col.conf.get('searchedict_idField'):
             self.form.noidWarning.hide()
         else:

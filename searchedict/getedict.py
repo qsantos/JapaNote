@@ -1,4 +1,5 @@
 import os
+from typing import Callable, Optional
 
 from anki.hooks import wrap
 from aqt import mw
@@ -17,7 +18,7 @@ class GetEDICTThread(QThread):
     failed = pyqtSignal()
     completed = pyqtSignal()
 
-    def run(self):
+    def run(self) -> None:
         if not fetch_edict(progress_callback=lambda x: self.progress.emit(x, 0.)):
             self.failed.emit()
             return
@@ -30,7 +31,7 @@ class GetENAMDICTThread(QThread):
     failed = pyqtSignal()
     completed = pyqtSignal()
 
-    def run(self):
+    def run(self) -> None:
         if not fetch_enamdict(progress_callback=lambda x: self.progress.emit(x, 0.)):
             self.failed.emit()
             return
@@ -39,14 +40,14 @@ class GetENAMDICTThread(QThread):
 
 
 class GetEDICTModule:
-    def __init__(self):
+    def __init__(self) -> None:
         self.display_getedict = False
         self.hooked_getedict = False
         self.edict_done = False
         self.enamdict_done = False
         self.callback = None
 
-    def display(self):
+    def display(self) -> None:
         self.display_getedict = True
         if not self.hooked_getedict:
             DeckBrowser._renderStats = wrap(DeckBrowser._renderStats, self.render, 'around')
@@ -54,12 +55,12 @@ class GetEDICTModule:
         if mw.col is not None:
             refresh_deckBrowser()
 
-    def undisplay(self):
+    def undisplay(self) -> None:
         self.display_getedict = False
         if mw.col is not None:
             refresh_deckBrowser()
 
-    def render(self, args, _old):
+    def render(self, args, _old) -> str:
         ret = _old(args)
         if not self.display_getedict:
             return ret
@@ -91,7 +92,7 @@ class GetEDICTModule:
     """
         return ret
 
-    def progress_edict(self, download, index):
+    def progress_edict(self, download: float, index: float) -> None:
         page = mw.web.page()
         if hasattr(page, 'runJavaScript'):  # Qt 5
             page.runJavaScript(f'document.querySelectorAll("#download-edict").forEach(function(e) {{ e.value = "{download * 100:.0f}"; }});')
@@ -103,7 +104,7 @@ class GetEDICTModule:
         mw.web.update()
 
 
-    def progress_enamdict(self, download, index):
+    def progress_enamdict(self, download: float, index: float) -> None:
         page = mw.web.page()
         if hasattr(page, 'runJavaScript'):  # Qt 5
             page.runJavaScript(f'document.querySelectorAll("#download-enamdict").forEach(function(e) {{ e.value = "{download * 100:.0f}"; }});')
@@ -114,25 +115,25 @@ class GetEDICTModule:
             document.findFirst('#index-enamdict').setAttribute('value', f'{index * 100:.0f}')
         mw.web.update()
 
-    def failed(self):
+    def failed(self) -> None:
         self.undisplay()
         showInfo('Failed to download EDICT files.')
 
-    def complete_edict(self):
+    def complete_edict(self) -> None:
         self.edict_done = True
         if self.enamdict_done:
             self.complete()
 
-    def complete_enamdict(self):
+    def complete_enamdict(self) -> None:
         self.enamdict_done = True
         if self.edict_done:
             self.complete()
 
-    def complete(self):
+    def complete(self) -> None:
         self.undisplay()
         self.callback()
 
-    def auto(self, callback=None):
+    def auto(self, callback: Optional[Callable[[], None]] = None) -> None:
         # check whether all necessary files already exists
         if all(os.path.isfile(filename) for filename in [default_edict, default_enamdict, default_edict_index, default_enamdict_index]):
             callback()

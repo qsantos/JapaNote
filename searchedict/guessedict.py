@@ -20,12 +20,12 @@ class GuessEDICTWindow(QDialog):
             window_to_front(cls.instance)
         return cls.instance
 
-    def closeEvent(self, evt):
+    def closeEvent(self, evt) -> None:
         type(self).instance = None
         self.hide()
         evt.accept()
 
-    def __init__(self, parent):
+    def __init__(self, parent) -> None:
         QDialog.__init__(self)
         self.form = formguessids.Ui_Dialog()
         self.form.setupUi(self)
@@ -63,7 +63,7 @@ class GuessEDICTWindow(QDialog):
 
         self.show()
 
-    def set_onChange_combobox(self, combobox, config_key):
+    def set_onChange_combobox(self, combobox, config_key) -> None:
         def _(combobox):
             def onChange():
                 mw.col.conf[config_key] = combobox.currentText() if combobox.currentIndex() != 0 else None
@@ -72,17 +72,17 @@ class GuessEDICTWindow(QDialog):
             return onChange
         combobox.currentIndexChanged.connect(_(combobox))
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event) -> None:
         if event.key() == Qt.Key_Escape:
             self.close()
 
-    def onChangeModel(self):
+    def onChangeModel(self) -> None:
         mw.col.conf['guessedict_model'] = self.form.modelBox.currentText()
         mw.col.setMod()
         self.update_fieldboxes()
         self.update_enabled()
 
-    def update_fieldboxes(self):
+    def update_fieldboxes(self) -> None:
         field_names = [''] + [field['name'] for field in self.model['flds']]
 
         self.form.kanjiBox.clear()
@@ -97,7 +97,7 @@ class GuessEDICTWindow(QDialog):
         self.form.definitionBox.addItems(field_names)
         self.form.idBox.addItems(field_names)
 
-    def enough_fields_given(self):
+    def enough_fields_given(self) -> bool:
         ok = False
         if mw.col.conf.get('guessedict_kanjiField'):
             ok = True
@@ -109,16 +109,16 @@ class GuessEDICTWindow(QDialog):
             ok = False
         return ok
 
-    def update_enabled(self):
+    def update_enabled(self) -> None:
         self.form.guessButton.setEnabled(self.enough_fields_given())
 
-    def on_click_guess_button(self):
+    def on_click_guess_button(self) -> None:
         self.form.guessButton.setText('Guessing...')
         immediate_redraw(self)
         self.guess()
         self.close()
 
-    def guess(self):
+    def guess(self) -> None:
         # get field names
         kanji_field = mw.col.conf.get('guessedict_kanjiField')
         kana_field = mw.col.conf.get('guessedict_kanaField')

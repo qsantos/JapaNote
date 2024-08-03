@@ -12,10 +12,10 @@ from .view import refresh_deckBrowser
 
 class JavaScriptBridge(QObject):
     @pyqtSlot(str)
-    def quickAdd(self, pattern):
+    def quickAdd(self, pattern: str) -> int:
         pattern = pattern.strip()
         if not pattern:
-            return None
+            return 0
         word_search.search(pattern, enable_edict=True, enable_deinflect=True, enable_enamdict=False)
         if not word_search.words:
             showInfo('No word found')
@@ -28,17 +28,17 @@ class JavaScriptBridge(QObject):
             return 1
 
     @pyqtSlot()
-    def showSettings(self):
+    def showSettings(self) -> None:
         SearchSettingsWindow.open()
 
 
 class QuickAddModule:
-    def __init__(self):
+    def __init__(self) -> None:
         self.display_quickadd = False
         self.hooked_quickadd = False
         self.bridge = JavaScriptBridge()
 
-    def display(self):
+    def display(self) -> None:
         self.display_quickadd = True
         if not self.hooked_quickadd:
             # display quick add form
@@ -51,7 +51,7 @@ class QuickAddModule:
                 channel = web_page.webChannel()
                 channel.registerObject('edict', self.bridge)
             else:  # Qt4
-                def register_bridge():
+                def register_bridge() -> None:
                     web_page = mw.deckBrowser.web.page()
                     web_frame = web_page.mainFrame()
                     web_frame.addToJavaScriptWindowObject('edict', self.bridge)
@@ -61,12 +61,12 @@ class QuickAddModule:
         if mw.col is not None:
             refresh_deckBrowser()
 
-    def undisplay(self):
+    def undisplay(self) -> None:
         self.display_quickadd = True
         if mw.col is not None:
             refresh_deckBrowser()
 
-    def render(self, args, _old):
+    def render(self, args, _old) -> str:
         ret = _old(args)
         if not self.display_quickadd:
             return ret

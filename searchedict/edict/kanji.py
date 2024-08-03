@@ -5,24 +5,27 @@ default_kanjidic = os.path.join(os.path.dirname(__file__), 'kanjidic')
 
 
 class Kanji:
-    def __init__(self, character, readings, meanings):
+    def __init__(self, character: str, readings: list[str], meanings: set[str]) -> None:
         self.character = character
         self.readings = readings
         self.meanings = meanings
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'.{self.character}.'
 
 
 hiragana = [chr(i) for i in range(0x3040, 0x30A0)]
 katakana = [chr(i) for i in range(0x30A0, 0x3100)]
 
-def hiragana_to_katakana(s):
+
+def hiragana_to_katakana(s: str) -> str:
     return ''.join(katakana[hiragana.index(c)] if c in hiragana else c for c in s)
 
-def katakana_to_hiragana(s):
+
+def katakana_to_hiragana(s: str) -> str:
     # NOTE: ignores ヷ ヸ ヹ ヺ
     return ''.join(hiragana[katakana.index(c)] if c in katakana else c for c in s)
+
 
 assert hiragana_to_katakana('くぼ.む') == 'クボ.ム'
 assert katakana_to_hiragana('クボ.ム') == 'くぼ.む'
@@ -35,7 +38,7 @@ dakutens = {
 }
 
 
-def normalize_readings(readings):
+def normalize_readings(readings: set[str]) -> set[str]:
     # strip okurigana
     readings = {
         reading.split('.')[0] if '.' in reading else reading
@@ -51,7 +54,7 @@ def normalize_readings(readings):
     return readings
 
 
-def compound_readings(readings):
+def compound_readings(readings: set[str]) -> set[str]:
     gemination = {reading[:-1] + 'っ' for reading in readings}
     rendaku = {
         dakuten + reading[1:]
@@ -61,7 +64,7 @@ def compound_readings(readings):
     return gemination | rendaku
 
 
-def load_kanjidic(filename=default_kanjidic):
+def load_kanjidic(filename: str = default_kanjidic) -> dict[str, Kanji]:
     with open(filename, mode='rb') as f:
         edict_data = f.read().decode('euc_jp')
 

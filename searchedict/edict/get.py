@@ -1,6 +1,7 @@
 import gzip
 import os
 import time
+from typing import BinaryIO, Callable, Optional
 from urllib.request import urlopen
 
 from .search import default_edict, default_enamdict
@@ -10,7 +11,7 @@ edict_url = 'http://ftp.edrdg.org/pub/Nihongo/edict2.gz'
 enamdict_url = 'http://ftp.edrdg.org/pub/Nihongo/enamdict.gz'
 
 
-def fetch(url, out_file, progress_callback=None, progress_step=2**-6):
+def fetch(url: str, out_file: BinaryIO, progress_callback: Optional[Callable[[float], None]] = None, progress_step: float = 2**-6) -> bool:
     # prepare transfer
     request = urlopen(url)
     blocksize = 2**10
@@ -50,7 +51,7 @@ def fetch(url, out_file, progress_callback=None, progress_step=2**-6):
     return True
 
 
-def extract(in_file, out_file, progress_callback=None, progress_step=2**-6):
+def extract(in_file: BinaryIO, out_file: BinaryIO, progress_callback: Optional[Callable[[float], None]] = None, progress_step: float = 2**-6) -> None:
     # prepare extraction
     gzip_stream = gzip.GzipFile(mode='rb', fileobj=in_file)
 
@@ -85,7 +86,7 @@ def extract(in_file, out_file, progress_callback=None, progress_step=2**-6):
         progress_callback(1.)
 
 
-def atomic_fetch(url, filename, progress_callback=None, progress_step=2**-6):
+def atomic_fetch(url: str, filename: str, progress_callback: Optional[Callable[[float], None]] = None, progress_step: float = 2**-6) -> bool:
     # fetch in temporary file
     temp_filename = filename + '.tmp'
     with open(temp_filename, 'wb') as temp_file:
@@ -96,7 +97,7 @@ def atomic_fetch(url, filename, progress_callback=None, progress_step=2**-6):
     return True
 
 
-def atomic_extract(in_filename, out_filename, progress_callback=None, progress_step=2**-6):
+def atomic_extract(in_filename: str, out_filename: str, progress_callback: Optional[Callable[[float], None]] = None, progress_step: float = 2**-6) -> None:
     # extract into temporary file
     temp_filename = out_filename + '.tmp'
     with open(in_filename, 'rb') as in_file, open(temp_filename, 'wb') as temp_file:
@@ -105,7 +106,7 @@ def atomic_extract(in_filename, out_filename, progress_callback=None, progress_s
     os.rename(temp_filename, out_filename)
 
 
-def fetch_and_extract(url, filename, progress_callback=None, progress_step=2**-6):
+def fetch_and_extract(url: str, filename: str, progress_callback: Optional[Callable[[float], None]] = None, progress_step: float = 2**-6) -> bool:
     # do nothing is file already exists
     if os.path.isfile(filename):
         return True
@@ -122,9 +123,9 @@ def fetch_and_extract(url, filename, progress_callback=None, progress_step=2**-6
     return True
 
 
-def fetch_edict(url=edict_url, filename=default_edict, progress_callback=None, progress_step=2**-6):
+def fetch_edict(url: str = edict_url, filename: str = default_edict, progress_callback: Optional[Callable[[float], None]] = None, progress_step: float = 2**-6) -> bool:
     return fetch_and_extract(url, filename, progress_callback, progress_step)
 
 
-def fetch_enamdict(url=enamdict_url, filename=default_enamdict, progress_callback=None, progress_step=2**-6):
+def fetch_enamdict(url: str = enamdict_url, filename: str = default_enamdict, progress_callback: Optional[Callable[[float], None]] = None, progress_step: float = 2**-6) -> bool:
     return fetch_and_extract(url, filename, progress_callback, progress_step)

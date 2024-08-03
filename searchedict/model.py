@@ -1,4 +1,5 @@
 from gettext import ngettext
+from typing import Optional
 
 from anki.notes import Note
 from aqt import mw
@@ -10,7 +11,7 @@ from .edict.search import search_edict, search_enamdict
 from .searchsettings import SearchSettingsWindow
 
 
-def check_field(model, config_key):
+def check_field(model, config_key) -> bool:
     try:
         model_field = mw.col.conf[config_key]
     except KeyError:
@@ -24,7 +25,7 @@ def check_field(model, config_key):
     return False
 
 
-def note_set_field(note, config_key, value):
+def note_set_field(note, config_key, value) -> None:
     try:
         model_field = mw.col.conf[config_key]
     except KeyError:
@@ -37,7 +38,7 @@ def note_set_field(note, config_key, value):
         showInfo(f'Note type "{note.model()["name"]}" has not field /{model_field}"')
 
 
-def add_notes(words):
+def add_notes(words) -> None:
     if not mw.col.conf.get('searchedict_hasopensettings'):
         showInfo('Please check the settings first')
         SearchSettingsWindow.open()
@@ -101,17 +102,17 @@ def add_notes(words):
 
 
 class WordSearchModel(QAbstractTableModel):
-    def __init__(self):
+    def __init__(self) -> None:
         QAbstractTableModel.__init__(self)
         self.words = []
 
-    def rowCount(self, _index):
+    def rowCount(self, _index: int) -> int:
         return len(self.words)
 
-    def columnCount(self, _index):
+    def columnCount(self, _index: int) -> int:
         return 5
 
-    def headerData(self, section, orientation, role):
+    def headerData(self, section, orientation, role) -> str:
         if orientation != Qt.Horizontal or role != Qt.DisplayRole:
             return QAbstractTableModel.headerData(self, section, orientation, role)
         return [
@@ -122,7 +123,7 @@ class WordSearchModel(QAbstractTableModel):
             'Definition',
         ][section]
 
-    def data(self, index, role):
+    def data(self, index, role) -> Optional[str]:
         if not index.isValid():
             return None
         if role == Qt.DisplayRole:
@@ -143,7 +144,7 @@ class WordSearchModel(QAbstractTableModel):
         else:
             return None
 
-    def sort(self, column, order):
+    def sort(self, column: int, order) -> None:
         reverse = order == Qt.DescendingOrder
         if column == 0:
             key = lambda word: word.kanji
@@ -155,7 +156,7 @@ class WordSearchModel(QAbstractTableModel):
         self.words = sorted(self.words, key=key, reverse=reverse)
         self.modelReset.emit()
 
-    def search(self, word, enable_edict=True, enable_deinflect=False, enable_enamdict=False):
+    def search(self, word: str, enable_edict: bool = True, enable_deinflect: bool = False, enable_enamdict: bool = False) -> None:
         self.modelAboutToBeReset.emit()
         self.words = []
         if enable_edict:

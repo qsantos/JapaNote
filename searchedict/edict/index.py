@@ -2,6 +2,7 @@
 import re
 import time
 from collections import defaultdict
+from typing import Callable, Optional
 
 from .search import (
     Word,
@@ -15,8 +16,10 @@ from .search import (
 
 byte_line_pattern = re.compile(b'(?m)^(.*)$')
 
+Edict = dict[str, set[Word]]
 
-def load_edict(filename, progress_callback=None, progress_step=2**-6):
+
+def load_edict(filename: str, progress_callback: Optional[Callable[[float], None]] = None, progress_step: float = 2**-6) -> Edict:
     with open(filename, mode='rb') as f:
         edict_data = f.read()
 
@@ -27,12 +30,12 @@ def load_edict(filename, progress_callback=None, progress_step=2**-6):
         last = time.time()
 
     edict = defaultdict(set)
-    for match in byte_line_pattern.finditer(edict_data):
+    for byte_match in byte_line_pattern.finditer(edict_data):
         # get byte offset of line
-        offset = match.start()
+        offset = byte_match.start()
 
         # parse line
-        line = match.group(0).decode('euc_jp')
+        line = byte_match.group(0).decode('euc_jp')
         match = edict_line_pattern.match(line)
         if not match:
             continue
@@ -61,7 +64,7 @@ def load_edict(filename, progress_callback=None, progress_step=2**-6):
     return edict
 
 
-def edict_to_index(edict, output_filename, progress_callback=None, progress_step=2**-6):
+def edict_to_index(edict: Edict, output_filename: str, progress_callback: Optional[Callable[[float], None]] = None, progress_step: float = 2**-6) -> None:
     if progress_callback is not None:
         size = float(len(edict))
         progress_callback(.5)
@@ -71,8 +74,8 @@ def edict_to_index(edict, output_filename, progress_callback=None, progress_step
         for i, key in enumerate(sorted(edict)):
             words = edict[key]
             offsets = sorted(word.edict_offset for word in words)
-            offsets = ' '.join(str(offset) for offset in offsets)
-            line = f'{key} {offsets}\n'
+            offsets_str = ' '.join(str(offset) for offset in offsets)
+            line = f'{key} {offsets_str}\n'
             f.write(line.encode('utf-8'))
 
             # report progress
@@ -87,7 +90,7 @@ def edict_to_index(edict, output_filename, progress_callback=None, progress_step
         progress_callback(1.)
 
 
-def build_index(input_filename, output_filename, progress_callback=None, progress_step=2**-6):
+def build_index(input_filename: str, output_filename: str, progress_callback: Optional[Callable[[float], None]] = None, progress_step: float = 2**-6) -> None:
     edict = load_edict(input_filename, progress_callback, progress_step)
     edict_to_index(edict, output_filename, progress_callback, progress_step)
 

@@ -1,7 +1,8 @@
 import os.path
 from collections import defaultdict
+from typing import Iterator
 
-from .search import search_edict
+from .search import Word, search_edict
 
 default_deinflect = os.path.join(os.path.dirname(__file__), 'deinflect.dat')
 
@@ -28,7 +29,7 @@ default_deinflect = os.path.join(os.path.dirname(__file__), 'deinflect.dat')
 # thus, the new word has type wtype = rtyle >> 8
 class Deinflector:
     """A Deinflector instance applies deinflection rules to normalize a word"""
-    def __init__(self, deinflect_data_filename=default_deinflect):
+    def __init__(self, deinflect_data_filename: str = default_deinflect) -> None:
         """Populate deinflecting rules from given file"""
         with open(deinflect_data_filename) as f:
             lines = iter(f)
@@ -46,11 +47,10 @@ class Deinflector:
                 else:
                     # rule
                     from_, to, type_, reason = fields
-                    type_ = int(type_)
                     reason = reasons[int(reason)]  # resolve string
-                    self.rules.append((from_, to, type_, reason))
+                    self.rules.append((from_, to, int(type_), reason))
 
-    def __call__(self, word):
+    def __call__(self, word: str) -> list[tuple[str, int, list[str]]]:
         """Iterate through possible deinflections of word (including word)
 
         Each value is a triplet whose first element is the deinflected word,
@@ -80,7 +80,7 @@ class Deinflector:
             i += 1
         return candidates
 
-    def search_edict(self, fragment):
+    def search_edict(self, fragment: str) -> Iterator[Word]:
         candidates = list(self(fragment))
         subedict = defaultdict(set)
         for candidate, _, _ in candidates:

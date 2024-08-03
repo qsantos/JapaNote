@@ -1,16 +1,17 @@
 from collections import deque
+from typing import Iterator
 
 from .kanji import load_kanjidic
 
 kanjidic = None
 
 
-def furigana_from_kanji_kana(kanji, kana):
+def furigana_from_kanji_kana(kanji: str, kana: str) -> str:
     matches = list(match_from_kanji_kana(kanji, kana))
     return furigana_from_match(matches[0])
 
 
-def match_from_kanji_kana(kanji, kana):
+def match_from_kanji_kana(kanji: str, kana: str) -> Iterator[list[tuple[str, str]]]:
     """Match kanji against kana
 
     Return a generator that yields all possible matches of kanji with the kana
@@ -49,13 +50,13 @@ def match_from_kanji_kana(kanji, kana):
     yield default
 
 
-def furigana_from_match(match):
+def furigana_from_match(match: list[tuple[str, str]]) -> str:
     """Transform a kanji-kana match into Anki-compatible furigana
 
     For instance, for [('牛', 'ぎゅう'), ('肉', 'にく')], it returns
     '牛[ぎゅう]肉[にく]'.
     """
-    def _():
+    def _() -> Iterator[str]:
         last_was_kana = False
         for kanji, kana in match:
             if kanji == kana:
