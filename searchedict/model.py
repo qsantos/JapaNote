@@ -156,16 +156,14 @@ class WordSearchModel(QAbstractTableModel):
         self.words = sorted(self.words, key=key, reverse=reverse)
         self.modelReset.emit()
 
-    def search(self, word: str, enable_edict: bool = True, enable_enamdict: bool = False) -> None:
+    def search(self, word: str, ) -> None:
         self.modelAboutToBeReset.emit()
         self.words = []
-        if enable_edict:
-            for candidate in set(deinflector(word)):
-                for word2 in edict.search(candidate.word):
-                    if word2.get_type() & candidate.type_:
-                        self.words.append(word2)
-        if enable_enamdict:
-            self.words += list(enamdict.search(word))
+        for candidate in set(deinflector(word)):
+            for word2 in edict.search(candidate.word):
+                if word2.get_type() & candidate.type_:
+                    self.words.append(word2)
+        self.words += list(enamdict.search(word))
         self.modelReset.emit()
 
 
