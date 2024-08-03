@@ -1,12 +1,11 @@
-# encoding: utf-8
 from aqt import mw
 from aqt.qt import *
 from aqt.utils import showInfo, tooltip
 
-from .view import formguessids, window_to_front, set_combobox_from_config, immediate_redraw
-from .edict.search import search_edict
 from . import furigana
-import anki
+from .edict.search import search_edict
+from .view import formguessids, immediate_redraw, set_combobox_from_config, window_to_front
+
 
 class GuessEDICTWindow(QDialog):
     instance = None
@@ -154,7 +153,7 @@ class GuessEDICTWindow(QDialog):
             elif kana is not None:
                 words = search_edict(kana)
             else:
-                raise NotImplemented
+                raise NotImplementedError
 
             # filter words
             if kanji is not None:

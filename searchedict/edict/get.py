@@ -1,6 +1,6 @@
+import gzip
 import os
 import time
-import gzip
 from urllib.request import urlopen
 
 from .search import default_edict, default_enamdict
@@ -106,7 +106,7 @@ def atomic_extract(in_filename, out_filename, progress_callback=None, progress_s
 def fetch_and_extract(url, filename, progress_callback=None, progress_step=2**-6):
     # do nothing is file already exists
     if os.path.isfile(filename):
-        return
+        return None
 
     # fetch compressed file
     gz_filename = filename + '.gz'

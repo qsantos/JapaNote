@@ -1,5 +1,5 @@
-import re
 import os.path
+import re
 
 from .furigana import furigana_from_kanji_kana
 
@@ -29,7 +29,7 @@ class Word:
         self._furigana = None
 
     def __repr__(self):
-        return '<{}>'.format(self.kanji)
+        return f'<{self.kanji}>'
 
     def get_sequence_number(self):
         last_gloss = self.glosses.split('/')[-1]

@@ -1,11 +1,10 @@
-# encoding: utf-8
+from anki.notes import Note
 from aqt import mw
 from aqt.qt import *
-from anki.notes import Note
 from aqt.utils import showInfo, tooltip
 
-from .edict.search import search_edict, search_enamdict
 from .edict.deinflect import Deinflector
+from .edict.search import search_edict, search_enamdict
 
 
 def check_field(model, config_key):
@@ -18,7 +17,7 @@ def check_field(model, config_key):
     for field in model['flds']:
         if field['name'] == model_field:
             return True
-    showInfo(u'Field "{}" not found'.format(model_field))
+    showInfo(f'Field "{model_field}" not found')
     return False
 
 
@@ -36,8 +35,8 @@ def note_set_field(note, config_key, value):
 
 
 def add_notes(words):
-    if not mw.col.conf.get(u'searchedict_hasopensettings'):
-        showInfo(u'Please check the settings first')
+    if not mw.col.conf.get('searchedict_hasopensettings'):
+        showInfo('Please check the settings first')
         SettingsWindow.open()
         return
 
@@ -113,16 +112,16 @@ class WordSearchModel(QAbstractTableModel):
         if orientation != Qt.Horizontal or role != Qt.DisplayRole:
             return QAbstractTableModel.headerData(self, section, orientation, role)
         return [
-            "Kanji",
-            "Kana",
-            "Template",
-            "JMDict ID",
-            "Definition",
+            'Kanji',
+            'Kana',
+            'Template',
+            'JMDict ID',
+            'Definition',
         ][section]
 
     def data(self, index, role):
         if not index.isValid():
-            return
+            return None
         if role == Qt.DisplayRole:
             word = self.words[index.row()]
             column = index.column()
@@ -137,9 +136,9 @@ class WordSearchModel(QAbstractTableModel):
             elif column == 4:
                 return '\n'.join(word.get_meanings())
             else:
-                raise NotImplemented
+                raise NotImplementedError
         else:
-            return
+            return None
 
     def sort(self, column, order):
         reverse = order == Qt.DescendingOrder

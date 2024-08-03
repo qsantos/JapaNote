@@ -1,5 +1,5 @@
-import re
 import os.path
+import re
 
 default_kanjidic = os.path.join(os.path.dirname(__file__), 'kanjidic')
 
@@ -11,7 +11,7 @@ class Kanji:
         self.meanings = meanings
 
     def __repr__(self):
-        return '.{}.'.format(self.character)
+        return f'.{self.character}.'
 
 
 hiragana = [chr(i) for i in range(0x3040, 0x30A0)]

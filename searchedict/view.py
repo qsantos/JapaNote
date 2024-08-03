@@ -1,12 +1,10 @@
-# encoding: utf-8
-import sys
 
 from aqt import mw
 from aqt.qt import *
 
 from . import formbrowser as formbrowser
-from . import formsettings as formsettings
 from . import formguessids as formguessids
+from . import formsettings as formsettings
 
 
 def window_to_front(window):

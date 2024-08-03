@@ -71,8 +71,8 @@ def edict_to_index(edict, output_filename, progress_callback=None, progress_step
         for i, key in enumerate(sorted(edict)):
             words = edict[key]
             offsets = sorted(word.edict_offset for word in words)
-            offsets = u' '.join(str(offset) for offset in offsets)
-            line = u'{} {}\n'.format(key, offsets)
+            offsets = ' '.join(str(offset) for offset in offsets)
+            line = f'{key} {offsets}\n'
             f.write(line.encode('utf-8'))
 
             # report progress

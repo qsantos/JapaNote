@@ -1,7 +1,7 @@
 import re
 
-from .search import search_enamdict
 from .deinflect import Deinflector
+from .search import search_enamdict
 
 ranges = [
     '々',  # IDEOGRAPHIC ITERATION MARK (U+3005)
@@ -17,7 +17,7 @@ fragment_pattern = re.compile('[{}]+'.format(''.join(ranges)))
 def japanese_text_substrings(text):
     for fragment in fragment_pattern.finditer(text):
         fragment = fragment.group()
-        for start in range(0, len(fragment)):
+        for start in range(len(fragment)):
             for stop in reversed(range(start+1, len(fragment)+1)):
                 yield fragment[start:stop]
 

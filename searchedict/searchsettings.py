@@ -1,8 +1,8 @@
-# encoding: utf-8
 from aqt import mw
 from aqt.qt import *
 
-from .view import formsettings, window_to_front, set_combobox_from_config
+from .view import formsettings, set_combobox_from_config, window_to_front
+
 
 class SearchSettingsWindow(QDialog):
     instance = None

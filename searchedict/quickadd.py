@@ -1,14 +1,13 @@
-# encoding: utf-8
 from anki.hooks import wrap
 from aqt import mw
+from aqt.deckbrowser import DeckBrowser
 from aqt.qt import *
 from aqt.utils import showInfo
-from aqt.deckbrowser import DeckBrowser
 
-from .view import refresh_deckBrowser
 from .model import add_notes, word_search
 from .searchedict import SearchEDICTWindow
 from .searchsettings import SearchSettingsWindow
+from .view import refresh_deckBrowser
 
 
 class JavaScriptBridge(QObject):
@@ -16,7 +15,7 @@ class JavaScriptBridge(QObject):
     def quickAdd(self, pattern):
         pattern = pattern.strip()
         if not pattern:
-            return
+            return None
         word_search.search(pattern, enable_edict=True, enable_deinflect=True, enable_enamdict=False)
         if not word_search.words:
             showInfo('No word found')
@@ -43,7 +42,7 @@ class QuickAddModule:
         self.display_quickadd = True
         if not self.hooked_quickadd:
             # display quick add form
-            DeckBrowser._renderStats = wrap(DeckBrowser._renderStats, self.render, "around")
+            DeckBrowser._renderStats = wrap(DeckBrowser._renderStats, self.render, 'around')
             self.hooked_quickadd = True
 
             # add bridge to JavaScript's namespace
@@ -71,7 +70,7 @@ class QuickAddModule:
         ret = _old(args)
         if not self.display_quickadd:
             return ret
-        ret += u'''
+        ret += """
     <fieldset style="width:500px; margin:30px 0 30px 0">
         <legend>Quick EDICT add</legend>
         <input style="height:1.8em" type="text" id="quick-add-pattern" placeholder="あんき">
@@ -96,5 +95,5 @@ class QuickAddModule:
     settings.addEventListener('click', function(event) { edict.showSettings() });
     pattern.addEventListener('keypress', function(event) { if (event.keyCode == 13) { edict.quickAdd(pattern.value) } });
     })();
-    </script>'''
+    </script>"""
         return ret

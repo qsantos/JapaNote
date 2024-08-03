@@ -63,6 +63,6 @@ def furigana_from_match(match):
             else:
                 if last_was_kana:
                     yield ' '
-                yield '{}[{}]'.format(kanji, kana)
+                yield f'{kanji}[{kana}]'
             last_was_kana = kanji == kana
     return ''.join(_())

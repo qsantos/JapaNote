@@ -1,15 +1,13 @@
-# encoding: utf-8
 from anki.hooks import wrap
 from aqt import mw
+from aqt.deckbrowser import DeckBrowser
 from aqt.qt import *
 from aqt.utils import askUser, showInfo
-from aqt.deckbrowser import DeckBrowser
 
-from .view import refresh_deckBrowser
-from .edict.search import default_edict, default_enamdict, default_edict_index, default_enamdict_index
 from .edict.get import fetch_edict, fetch_enamdict
 from .edict.index import build_index
-
+from .edict.search import default_edict, default_edict_index, default_enamdict, default_enamdict_index
+from .view import refresh_deckBrowser
 
 
 class GetEDICTThread(QThread):
@@ -49,7 +47,7 @@ class GetEDICTModule:
     def display(self):
         self.display_getedict = True
         if not self.hooked_getedict:
-            DeckBrowser._renderStats = wrap(DeckBrowser._renderStats, self.render, "around")
+            DeckBrowser._renderStats = wrap(DeckBrowser._renderStats, self.render, 'around')
             self.hooked_getedict = True
         if mw.col is not None:
             refresh_deckBrowser()
@@ -63,7 +61,7 @@ class GetEDICTModule:
         ret = _old(args)
         if not self.display_getedict:
             return ret
-        ret += u'''
+        ret += """
     <fieldset id="getedict" style="width:500px; margin:30px 0 30px 0">
         <legend>Get EDICT files</legend>
         <div>
@@ -88,30 +86,30 @@ class GetEDICTModule:
     #getedict label { width:300px; }
     #getedict progress { width:300px; height:20px; }
     </style>
-    '''
+    """
         return ret
 
     def progress_edict(self, download, index):
         page = mw.web.page()
         if hasattr(page, 'runJavaScript'):  # Qt 5
-            page.runJavaScript('document.querySelectorAll("#download-edict").forEach(function(e) {{ e.value = "{:.0f}"; }});'.format(download * 100))
-            page.runJavaScript('document.querySelectorAll("#index-edict").forEach(function(e) {{ e.value = "{:.0f}"; }});'.format(index * 100))
+            page.runJavaScript(f'document.querySelectorAll("#download-edict").forEach(function(e) {{ e.value = "{download * 100:.0f}"; }});')
+            page.runJavaScript(f'document.querySelectorAll("#index-edict").forEach(function(e) {{ e.value = "{index * 100:.0f}"; }});')
         else:  # Qt 4
             document = page.currentFrame().documentElement()
-            document.findFirst('#download-edict').setAttribute('value', '{:.0f}'.format(download * 100))
-            document.findFirst('#index-edict').setAttribute('value', '{:.0f}'.format(index * 100))
+            document.findFirst('#download-edict').setAttribute('value', f'{download * 100:.0f}')
+            document.findFirst('#index-edict').setAttribute('value', f'{index * 100:.0f}')
         mw.web.update()
 
 
     def progress_enamdict(self, download, index):
         page = mw.web.page()
         if hasattr(page, 'runJavaScript'):  # Qt 5
-            page.runJavaScript('document.querySelectorAll("#download-enamdict").forEach(function(e) {{ e.value = "{:.0f}"; }});'.format(download * 100))
-            page.runJavaScript('document.querySelectorAll("#index-enamdict").forEach(function(e) {{ e.value = "{:.0f}"; }});'.format(index * 100))
+            page.runJavaScript(f'document.querySelectorAll("#download-enamdict").forEach(function(e) {{ e.value = "{download * 100:.0f}"; }});')
+            page.runJavaScript(f'document.querySelectorAll("#index-enamdict").forEach(function(e) {{ e.value = "{index * 100:.0f}"; }});')
         else:  # Qt 4
             document = page.currentFrame().documentElement()
-            document.findFirst('#download-enamdict').setAttribute('value', '{:.0f}'.format(download * 100))
-            document.findFirst('#index-enamdict').setAttribute('value', '{:.0f}'.format(index * 100))
+            document.findFirst('#download-enamdict').setAttribute('value', f'{download * 100:.0f}')
+            document.findFirst('#index-enamdict').setAttribute('value', f'{index * 100:.0f}')
         mw.web.update()
 
     def failed(self):

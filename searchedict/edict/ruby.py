@@ -20,7 +20,7 @@ def ruby_from_match(match):
                 if not ruby_open:
                     yield '<ruby>'
                     ruby_open = True
-                yield '{}<rt>{}</rt>'.format(kanji, kana)
+                yield f'{kanji}<rt>{kana}</rt>'
             last_was_kana = kanji == kana
         if ruby_open:
             yield '</ruby>'

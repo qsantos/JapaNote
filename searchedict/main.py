@@ -1,11 +1,10 @@
-# encoding: utf-8
 from anki.hooks import addHook
 from aqt import mw
 from aqt.qt import *
 
 from .getedict import GetEDICTModule
-from .quickadd import QuickAddModule
 from .guessedict import GuessEDICTWindow
+from .quickadd import QuickAddModule
 from .searchedict import SearchEDICTWindow
 
 
@@ -23,7 +22,7 @@ def add_menu_entries_to_browser(self):
 
 
 def enable_edict():
-    addHook("browser.setupMenus", add_menu_entries_to_browser)
+    addHook('browser.setupMenus', add_menu_entries_to_browser)
     QuickAddModule().display()
 
 

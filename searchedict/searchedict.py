@@ -1,10 +1,9 @@
-# encoding: utf-8
 from aqt import mw
 from aqt.qt import *
 
-from .view import formbrowser, window_to_front
 from .model import add_notes, word_search
 from .searchsettings import SearchSettingsWindow
+from .view import formbrowser, window_to_front
 
 
 class SearchEDICTWindow(QMainWindow):
@@ -27,7 +26,7 @@ class SearchEDICTWindow(QMainWindow):
         QMainWindow.__init__(self)
 
         if pattern is None:
-            pattern = mw.col.conf.get('searchedict_pattern', u'')
+            pattern = mw.col.conf.get('searchedict_pattern', '')
         enable_edict = mw.col.conf.get('searchedict_enableEDICT', True)
         enable_deinflect = mw.col.conf.get('searchedict_enableDeinflect', True)
         enable_enamdict = mw.col.conf.get('searchedict_enableENAMDICT', False)
