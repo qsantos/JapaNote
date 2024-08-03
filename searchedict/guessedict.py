@@ -1,3 +1,5 @@
+from gettext import ngettext
+
 from aqt import mw
 from aqt.qt import QDialog, Qt
 from aqt.utils import showInfo, tooltip

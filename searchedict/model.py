@@ -1,3 +1,5 @@
+from gettext import ngettext
+
 from anki.notes import Note
 from aqt import mw
 from aqt.qt import QAbstractTableModel, Qt
