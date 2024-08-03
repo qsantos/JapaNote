@@ -1,0 +1,5 @@
+anki # Anki API
+aqt # Anki Qt API
+ruff # linting
+mypy # typing
+pip-tools  # generate requirements.txt from requirements.in
