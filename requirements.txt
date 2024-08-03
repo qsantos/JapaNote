@@ -74,6 +74,8 @@ pyproject-hooks==1.1.0
     # via
     #   build
     #   pip-tools
+pyqt5-stubs==5.15.6.0
+    # via -r requirements.in
 pysocks==1.7.1
     # via requests
 referencing==0.35.1
