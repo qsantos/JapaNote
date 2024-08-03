@@ -5,6 +5,7 @@ from aqt.utils import showInfo, tooltip
 
 from .edict.deinflect import Deinflector
 from .edict.search import search_edict, search_enamdict
+from .searchsettings import SearchSettingsWindow
 
 
 def check_field(model, config_key):
@@ -37,7 +38,7 @@ def note_set_field(note, config_key, value):
 def add_notes(words):
     if not mw.col.conf.get('searchedict_hasopensettings'):
         showInfo('Please check the settings first')
-        SettingsWindow.open()
+        SearchSettingsWindow.open()
         return
 
     # select deck
