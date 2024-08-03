@@ -36,7 +36,7 @@ def match_from_kanji_kana(kanji, kana):
             try:
                 kanjiinfo = kanjidic[c]
             except KeyError:
-                readings = c
+                readings = [c]
             else:
                 readings = kanjiinfo.readings
         for reading in readings:
