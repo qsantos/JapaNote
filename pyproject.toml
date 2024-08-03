@@ -38,6 +38,9 @@ lint.select = [
     "W",  # pycodestyle Warning
     "YTT",  # flake8-2020
 ]
+lint.ignore = [
+    "N802",  # Function name `…` should be lowercase
+]
 line-length = 119
 
 [tool.ruff.lint.flake8-quotes]
