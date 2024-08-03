@@ -105,10 +105,10 @@ class WordSearchModel(QAbstractTableModel):
         QAbstractTableModel.__init__(self)
         self.words = []
 
-    def rowCount(self, index):
+    def rowCount(self, _index):
         return len(self.words)
 
-    def columnCount(self, index):
+    def columnCount(self, _index):
         return 5
 
     def headerData(self, section, orientation, role):

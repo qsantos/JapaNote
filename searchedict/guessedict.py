@@ -40,7 +40,6 @@ class GuessEDICTWindow(QDialog):
         note_id = self.note_ids[0]
         note = mw.col.getNote(note_id)
         self.model = note.model()
-        model_name = self.model['name']
 
         # restore state from configuration
         # model

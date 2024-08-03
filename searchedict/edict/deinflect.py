@@ -88,7 +88,7 @@ class Deinflector:
             for word in search_edict(candidate):
                 for k in word.readings + word.writings:
                     subedict[k].add(word)
-        for candidate, type_, reason in candidates:
+        for candidate, type_, _reason in candidates:
             for word in subedict[candidate]:
                 if word.get_type() & type_:
                     yield word
