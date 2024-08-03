@@ -108,7 +108,7 @@ def atomic_extract(in_filename, out_filename, progress_callback=None, progress_s
 def fetch_and_extract(url, filename, progress_callback=None, progress_step=2**-6):
     # do nothing is file already exists
     if os.path.isfile(filename):
-        return None
+        return True
 
     # fetch compressed file
     gz_filename = filename + '.gz'
