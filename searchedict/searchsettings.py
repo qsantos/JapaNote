@@ -28,23 +28,23 @@ class SearchSettingsWindow(QDialog):
 
         mw.col.conf['searchedict_hasopensettings'] = True
 
-        decks = sorted(mw.col.decks.allNames())
-        models = sorted(mw.col.models.allNames())
+        deck_names = sorted(deck.name for deck in mw.col.decks.all_names_and_ids())
+        model_names = sorted(model.name for model in mw.col.models.all_names_and_ids())
 
-        self.form.deckBox.addItems(decks)
-        self.form.modelBox.addItems(models)
+        self.form.deckBox.addItems(deck_names)
+        self.form.modelBox.addItems(model_names)
         self.form.closeButton.clicked.connect(self.close)
 
         # restore state from configuration
         # deck
-        set_combobox_from_config(self.form.deckBox, decks, 'searchedict_deck')
+        set_combobox_from_config(self.form.deckBox, deck_names, 'searchedict_deck')
         # model
-        set_combobox_from_config(self.form.modelBox, models, 'searchedict_model')
+        set_combobox_from_config(self.form.modelBox, model_names, 'searchedict_model')
         self.update_fieldboxes()  # fill combo boxes for selected model
         self.update_warning()
         # field mapping
-        model_name = mw.col.conf.setdefault('searchedict_model', models[0])
-        model = mw.col.models.byName(model_name)
+        model_name = mw.col.conf.setdefault('searchedict_model', model_names[0])
+        model = mw.col.models.by_name(model_name)
         if model:
             field_names = [''] + [field['name'] for field in model['flds']]
             set_combobox_from_config(self.form.kanjiBox, field_names, 'searchedict_kanjiField')
@@ -83,7 +83,7 @@ class SearchSettingsWindow(QDialog):
 
     def update_fieldboxes(self) -> None:
         model_name = mw.col.conf['searchedict_model']
-        model = mw.col.models.byName(model_name)
+        model = mw.col.models.by_name(model_name)
         if not model:
             return
         field_names = [''] + [field['name'] for field in model['flds']]
