@@ -13,7 +13,7 @@ class SearchEDICTWindow(QMainWindow):
     instance = None
 
     @classmethod
-    def open(cls, pattern=None):
+    def open(cls, pattern: Optional[str] = None) -> 'SearchEDICTWindow':
         if cls.instance is None:
             cls.instance = cls(pattern)
         else:
