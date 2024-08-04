@@ -156,7 +156,7 @@ class WordSearchModel(QAbstractTableModel):
         self.words = sorted(self.words, key=key, reverse=reverse)
         self.modelReset.emit()
 
-    def search(self, word: str, ) -> None:
+    def search(self, word: str) -> None:
         self.modelAboutToBeReset.emit()
         self.words = []
         for candidate in set(deinflector(word)):
