@@ -1,6 +1,6 @@
 import os.path
 import re
-from typing import Iterator, Optional, Tuple
+from typing import Iterator, Optional
 
 from .furigana import furigana_from_kanji_kana
 
