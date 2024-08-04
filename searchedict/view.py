@@ -1,8 +1,8 @@
 from aqt import mw
-from aqt.qt import QApplication, Qt
+from aqt.qt import QApplication, Qt, QWidget
 
 
-def window_to_front(window) -> None:
+def window_to_front(window: QWidget) -> None:
     window.setWindowState(window.windowState() | Qt.WindowActive)
     window.activateWindow()
     window.raise_()
