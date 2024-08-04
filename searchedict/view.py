@@ -17,7 +17,7 @@ def set_combobox_from_config(combobox: QComboBox, elements: list[str], config_ke
     combobox.setCurrentIndex(element_idx)
 
 
-def immediate_redraw(widget) -> None:
+def immediate_redraw(widget: QWidget) -> None:
     widget.update()
     app = QApplication.instance()
     app.processEvents()
