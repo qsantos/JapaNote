@@ -9,7 +9,7 @@ class SearchSettingsWindow(QDialog):
     instance = None
 
     @classmethod
-    def open(cls):
+    def open(cls) -> 'SearchEDICTWindow':
         if cls.instance is None:
             cls.instance = cls()
         else:
