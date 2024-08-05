@@ -1,3 +1,5 @@
+from typing import Callable, TypeVar
+
 from anki.hooks import wrap
 from aqt import mw
 from aqt.deckbrowser import DeckBrowser
@@ -8,6 +10,9 @@ from .model import add_notes, word_search
 from .searchedict import SearchEDICTWindow
 from .searchsettings import SearchSettingsWindow
 from .view import refresh_deckBrowser
+
+
+T = TypeVar('T')
 
 
 class JavaScriptBridge(QObject):
@@ -66,7 +71,7 @@ class QuickAddModule:
         if mw.col is not None:
             refresh_deckBrowser()
 
-    def render(self, args, _old) -> str:
+    def render(self, args: T, _old: Callable[[T], str]) -> str:
         ret = _old(args)
         if not self.display_quickadd:
             return ret
