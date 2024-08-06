@@ -3,7 +3,7 @@ from typing import Optional
 
 from anki.notes import Note
 from aqt import mw
-from aqt.qt import QAbstractTableModel, Qt
+from aqt.qt import QAbstractTableModel, Qt, QtCore
 from aqt.utils import showInfo, tooltip
 
 from .edict2.deinflect import Deinflector
@@ -123,7 +123,7 @@ class WordSearchModel(QAbstractTableModel):
             'Definition',
         ][section]
 
-    def data(self, index, role) -> Optional[str]:
+    def data(self, index: QtCore.QModelIndex, role: int = Qt.DisplayRole) -> Optional[str]:
         if not index.isValid():
             return None
         if role == Qt.DisplayRole:
