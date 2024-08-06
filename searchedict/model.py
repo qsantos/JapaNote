@@ -7,7 +7,7 @@ from aqt.qt import QAbstractTableModel, Qt, QtCore
 from aqt.utils import showInfo, tooltip
 
 from .edict2.deinflect import Deinflector
-from .edict2.search import edict, enamdict
+from .edict2.search import Word, edict, enamdict
 from .searchsettings import SearchSettingsWindow
 
 
@@ -104,7 +104,7 @@ def add_notes(words) -> None:
 class WordSearchModel(QAbstractTableModel):
     def __init__(self) -> None:
         QAbstractTableModel.__init__(self)
-        self.words = []
+        self.words: list[Word] = []
 
     def rowCount(self, _index: int) -> int:
         return len(self.words)
@@ -127,7 +127,8 @@ class WordSearchModel(QAbstractTableModel):
         if not index.isValid():
             return None
         if role == Qt.DisplayRole:
-            word = self.words[index.row()]
+            row: int = index.row()
+            word = self.words[row]
             column = index.column()
             if column == 0:
                 return word.kanji
