@@ -112,7 +112,7 @@ class WordSearchModel(QAbstractTableModel):
     def columnCount(self, _index: int) -> int:
         return 5
 
-    def headerData(self, section, orientation, role) -> str:
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole) -> str:
         if orientation != Qt.Horizontal or role != Qt.DisplayRole:
             return QAbstractTableModel.headerData(self, section, orientation, role)
         return [
