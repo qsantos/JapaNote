@@ -109,7 +109,7 @@ class WordSearchModel(QAbstractTableModel):
     def rowCount(self, _index: int) -> int:
         return len(self.words)
 
-    def columnCount(self, _index: int) -> int:
+    def columnCount(self, parent: QtCore.QModelIndex = ...) -> int:
         return 5
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole) -> str:
