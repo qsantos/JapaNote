@@ -113,9 +113,12 @@ class GuessEDICTWindow(QDialog):
         self.form.guessButton.setEnabled(self.enough_fields_given(mw.col))
 
     def on_click_guess_button(self) -> None:
+        assert mw is not None
+        col = mw.col
+        assert col is not None
         self.form.guessButton.setText('Guessing...')
         immediate_redraw(self)
-        self.guess(mw.col)
+        self.guess(col)
         self.close()
 
     def guess(self, col: Collection) -> None:
