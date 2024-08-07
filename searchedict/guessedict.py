@@ -150,9 +150,9 @@ class GuessEDICTWindow(QDialog):
 
             # search
             if kanji is not None:
-                words = edict.search(kanji)
+                words = list(edict.search(kanji))
             elif kana is not None:
-                words = edict.search(kana)
+                words = list(edict.search(kana))
             else:
                 raise NotImplementedError
 
