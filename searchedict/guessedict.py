@@ -130,7 +130,7 @@ class GuessEDICTWindow(QDialog):
         n_guessed = 0
         n_ambiguous = 0
         for note_id in self.note_ids:
-            note = col.getNote(note_id)
+            note = col.get_note(note_id)
 
             # gather information about kanji and kana
             kanji = None
