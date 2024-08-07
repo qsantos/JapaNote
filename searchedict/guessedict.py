@@ -1,6 +1,6 @@
 from gettext import ngettext
 
-from aqt import mw
+from aqt import Collection, mw
 from aqt.qt import QDialog, Qt
 from aqt.utils import showInfo, tooltip
 
@@ -115,22 +115,22 @@ class GuessEDICTWindow(QDialog):
     def on_click_guess_button(self) -> None:
         self.form.guessButton.setText('Guessing...')
         immediate_redraw(self)
-        self.guess()
+        self.guess(mw.col)
         self.close()
 
-    def guess(self) -> None:
+    def guess(self, col: Collection) -> None:
         # get field names
-        kanji_field = mw.col.conf.get('guessedict_kanjiField')
-        kana_field = mw.col.conf.get('guessedict_kanaField')
-        furigana_field = mw.col.conf.get('guessedict_furiganaField')
-        definition_field = mw.col.conf.get('guessedict_definitionField')
-        id_field = mw.col.conf.get('guessedict_idField')
+        kanji_field = col.conf.get('guessedict_kanjiField')
+        kana_field = col.conf.get('guessedict_kanaField')
+        furigana_field = col.conf.get('guessedict_furiganaField')
+        definition_field = col.conf.get('guessedict_definitionField')
+        id_field = col.conf.get('guessedict_idField')
 
         n_ignored = 0
         n_guessed = 0
         n_ambiguous = 0
         for note_id in self.note_ids:
-            note = mw.col.getNote(note_id)
+            note = col.getNote(note_id)
 
             # gather information about kanji and kana
             kanji = None
