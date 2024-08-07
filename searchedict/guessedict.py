@@ -97,20 +97,20 @@ class GuessEDICTWindow(QDialog):
         self.form.definitionBox.addItems(field_names)
         self.form.idBox.addItems(field_names)
 
-    def enough_fields_given(self) -> bool:
+    def enough_fields_given(self, col: Collection) -> bool:
         ok = False
-        if mw.col.conf.get('guessedict_kanjiField'):
+        if col.conf.get('guessedict_kanjiField'):
             ok = True
-        if mw.col.conf.get('guessedict_kanField'):
+        if col.conf.get('guessedict_kanField'):
             ok = True
-        if mw.col.conf.get('guessedict_furiganaField'):
+        if col.conf.get('guessedict_furiganaField'):
             ok = True
-        if not mw.col.conf.get('guessedict_idField'):
+        if not col.conf.get('guessedict_idField'):
             ok = False
         return ok
 
     def update_enabled(self) -> None:
-        self.form.guessButton.setEnabled(self.enough_fields_given())
+        self.form.guessButton.setEnabled(self.enough_fields_given(mw.col))
 
     def on_click_guess_button(self) -> None:
         self.form.guessButton.setText('Guessing...')
