@@ -3,8 +3,9 @@ from typing import Optional
 
 from anki.notes import Note
 from aqt import mw
-from aqt.qt import QAbstractTableModel, Qt, QtCore
+from aqt.qt import QAbstractTableModel, Qt
 from aqt.utils import showInfo, tooltip
+from PyQt5 import QtCore
 
 from .edict2.deinflect import Deinflector
 from .edict2.search import Word, edict, enamdict
