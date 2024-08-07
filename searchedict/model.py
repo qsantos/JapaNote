@@ -106,7 +106,7 @@ class WordSearchModel(QAbstractTableModel):
         QAbstractTableModel.__init__(self)
         self.words: list[Word] = []
 
-    def rowCount(self, _index: int) -> int:
+    def rowCount(self, parent: QtCore.QModelIndex = ...) -> int:
         return len(self.words)
 
     def columnCount(self, parent: QtCore.QModelIndex = ...) -> int:
