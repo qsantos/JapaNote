@@ -2,7 +2,7 @@ from gettext import ngettext
 from typing import Optional
 
 from anki.notes import Note
-from aqt import mw
+from aqt import Collection, mw
 from aqt.qt import QAbstractTableModel, Qt
 from aqt.utils import showInfo, tooltip
 from PyQt5 import QtCore
@@ -10,6 +10,13 @@ from PyQt5 import QtCore
 from .edict2.deinflect import Deinflector
 from .edict2.search import Word, edict, enamdict
 from .searchsettings import SearchSettingsWindow
+
+
+def get_collection() -> Collection:
+    assert mw is not None
+    col = mw.col
+    assert col is not None
+    return col
 
 
 def check_field(model, config_key) -> bool:

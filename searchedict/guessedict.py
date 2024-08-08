@@ -1,12 +1,13 @@
 from gettext import ngettext
 
-from aqt import Collection, mw
+from aqt import mw
 from aqt.qt import QDialog, Qt
 from aqt.utils import showInfo, tooltip
 from PyQt5 import QtGui
 
 from . import formguessids, furigana
 from .edict2.search import edict
+from .model import get_collection
 from .view import immediate_redraw, set_combobox_from_config, window_to_front
 
 
@@ -98,7 +99,8 @@ class GuessEDICTWindow(QDialog):
         self.form.definitionBox.addItems(field_names)
         self.form.idBox.addItems(field_names)
 
-    def enough_fields_given(self, col: Collection) -> bool:
+    def enough_fields_given(self) -> bool:
+        col = get_collection()
         ok = False
         if col.conf.get('guessedict_kanjiField'):
             ok = True
@@ -111,18 +113,17 @@ class GuessEDICTWindow(QDialog):
         return ok
 
     def update_enabled(self) -> None:
-        self.form.guessButton.setEnabled(self.enough_fields_given(mw.col))
+        self.form.guessButton.setEnabled(self.enough_fields_given())
 
     def on_click_guess_button(self) -> None:
-        assert mw is not None
-        col = mw.col
-        assert col is not None
         self.form.guessButton.setText('Guessing...')
         immediate_redraw(self)
-        self.guess(col)
+        self.guess()
         self.close()
 
-    def guess(self, col: Collection) -> None:
+    def guess(self) -> None:
+        col = get_collection()
+
         # get field names
         kanji_field = col.conf.get('guessedict_kanjiField')
         kana_field = col.conf.get('guessedict_kanaField')
