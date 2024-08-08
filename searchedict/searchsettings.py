@@ -1,5 +1,6 @@
 from aqt import mw
 from aqt.qt import QDialog, Qt
+from PyQt5 import QtGui
 
 from . import formsettings
 from .view import set_combobox_from_config, window_to_front
@@ -16,7 +17,7 @@ class SearchSettingsWindow(QDialog):
             window_to_front(cls.instance)
         return cls.instance
 
-    def closeEvent(self, evt) -> None:
+    def closeEvent(self, evt: QtGui.QCloseEvent) -> None:
         type(self).instance = None
         self.hide()
         evt.accept()

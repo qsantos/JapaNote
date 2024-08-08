@@ -2,6 +2,7 @@ from typing import Optional
 
 from aqt import mw
 from aqt.qt import QMainWindow, Qt
+from PyQt5 import QtGui
 
 from . import formbrowser
 from .model import add_notes, word_search
@@ -20,7 +21,7 @@ class SearchEDICTWindow(QMainWindow):
             window_to_front(cls.instance)
         return cls.instance
 
-    def closeEvent(self, evt) -> None:
+    def closeEvent(self, evt: QtGui.QCloseEvent) -> None:
         type(self).instance = None
         self.hide()
         evt.accept()

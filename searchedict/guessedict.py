@@ -3,6 +3,7 @@ from gettext import ngettext
 from aqt import Collection, mw
 from aqt.qt import QDialog, Qt
 from aqt.utils import showInfo, tooltip
+from PyQt5 import QtGui
 
 from . import formguessids, furigana
 from .edict2.search import edict
@@ -20,7 +21,7 @@ class GuessEDICTWindow(QDialog):
             window_to_front(cls.instance)
         return cls.instance
 
-    def closeEvent(self, evt) -> None:
+    def closeEvent(self, evt: QtGui.QCloseEvent) -> None:
         type(self).instance = None
         self.hide()
         evt.accept()
