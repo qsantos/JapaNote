@@ -1,6 +1,7 @@
 from gettext import ngettext
 
 from aqt import mw
+from aqt.browser import Browser
 from aqt.qt import QDialog, Qt
 from aqt.utils import showInfo, tooltip
 from PyQt5 import QtGui
@@ -15,7 +16,7 @@ class GuessEDICTWindow(QDialog):
     instance = None
 
     @classmethod
-    def open(cls, parent):
+    def open(cls, parent: Browser) -> 'GuessEDICTWindow':
         if cls.instance is None:
             cls.instance = cls(parent)
         else:
