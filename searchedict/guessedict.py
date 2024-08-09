@@ -184,7 +184,7 @@ class GuessEDICTWindow(QDialog):
                 note[id_field] = word.get_sequence_number()
                 n_guessed += 1
             else:  # several matches
-                note.addTag('ambiguous')
+                note.add_tag('ambiguous')
                 n_ambiguous += 1
             note.flush()
         mw.reset()
