@@ -109,6 +109,7 @@ def add_notes(words: Iterable[Word]) -> None:
 
         # add card
         n_newcards += col.addNote(note)
+    assert mw is not None
     mw.reset()
     tooltip(ngettext('{} card added.', '{} cards added.', n_newcards).format(n_newcards))
 
