@@ -21,8 +21,9 @@ def get_collection() -> Collection:
 
 
 def check_field(model: NotetypeDict, config_key: str) -> bool:
+    col = get_collection()
     try:
-        model_field = mw.col.conf[config_key]
+        model_field = col.conf[config_key]
     except KeyError:
         return True
     if model_field is None:
@@ -35,8 +36,9 @@ def check_field(model: NotetypeDict, config_key: str) -> bool:
 
 
 def note_set_field(note: Note, config_key: str, value: str) -> None:
+    col = get_collection()
     try:
-        model_field = mw.col.conf[config_key]
+        model_field = col.conf[config_key]
     except KeyError:
         return
     if model_field is None:
@@ -48,29 +50,30 @@ def note_set_field(note: Note, config_key: str, value: str) -> None:
 
 
 def add_notes(words: Iterable[Word]) -> None:
-    if not mw.col.conf.get('searchedict_hasopensettings'):
+    col = get_collection()
+    if not col.conf.get('searchedict_hasopensettings'):
         showInfo('Please check the settings first')
         SearchSettingsWindow.open()
         return
 
     # select deck
-    deck_name = mw.col.conf.get('searchedict_deck')
+    deck_name = col.conf.get('searchedict_deck')
     if deck_name is None:
-        deck_id = mw.col.decks.selected()
+        deck_id = col.decks.selected()
     else:
-        deck_id = mw.col.decks.id(deck_name)
-    deck = mw.col.decks.get(deck_id)
+        deck_id = col.decks.id(deck_name)
+    deck = col.decks.get(deck_id)
     if deck is None:
         showInfo('Deck not found')
         return
 
     # select model
     try:
-        model_name = mw.col.conf['searchedict_model']
+        model_name = col.conf['searchedict_model']
     except KeyError:
         showInfo('Note type is not set')
         return
-    model = mw.col.models.by_name(model_name)
+    model = col.models.by_name(model_name)
     if model is None:
         showInfo('Note type not found')
         return
@@ -91,7 +94,7 @@ def add_notes(words: Iterable[Word]) -> None:
     n_newcards = 0
     for word in words:
         # create new note
-        note = Note(mw.col, model)
+        note = Note(col, model)
         # fill new note
         note_set_field(note, 'searchedict_kanjiField', word.kanji)
         note_set_field(note, 'searchedict_kanaField', word.kana)
@@ -100,12 +103,12 @@ def add_notes(words: Iterable[Word]) -> None:
         note_set_field(note, 'searchedict_idField', word.get_sequence_number())
 
         # check for duplicates if id field is set
-        idfield = mw.col.conf.get('searchedict_idField')
-        if idfield is not None and mw.col.find_notes(f'{idfield}:{word.get_sequence_number()}'):
+        idfield = col.conf.get('searchedict_idField')
+        if idfield is not None and col.find_notes(f'{idfield}:{word.get_sequence_number()}'):
             continue
 
         # add card
-        n_newcards += mw.col.addNote(note)
+        n_newcards += col.addNote(note)
     mw.reset()
     tooltip(ngettext('{} card added.', '{} cards added.', n_newcards).format(n_newcards))
 
