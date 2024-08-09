@@ -27,7 +27,7 @@ class GuessEDICTWindow(QDialog):
         self.hide()
         evt.accept()
 
-    def __init__(self, parent) -> None:
+    def __init__(self, parent: Browser) -> None:
         QDialog.__init__(self)
         self.form = formguessids.Ui_Dialog()
         self.form.setupUi(self)
