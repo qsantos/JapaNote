@@ -5,7 +5,7 @@ from aqt.qt import QMainWindow, Qt
 from PyQt5 import QtGui
 
 from . import formbrowser
-from .model import add_notes, word_search
+from .model import add_notes, get_collection, word_search
 from .searchsettings import SearchSettingsWindow
 from .view import window_to_front
 
@@ -30,7 +30,8 @@ class SearchEDICTWindow(QMainWindow):
         QMainWindow.__init__(self)
 
         if pattern is None:
-            pattern = mw.col.conf.get('searchedict_pattern', '')
+            col = get_collection()
+            pattern = col.conf.get('searchedict_pattern', '')
 
         self.form = formbrowser.Ui_MainWindow()
         self.form.setupUi(self)
@@ -62,7 +63,8 @@ class SearchEDICTWindow(QMainWindow):
         # update results
         word_search.search(pattern)
         # save settings for persistence
-        mw.col.conf['searchedict_pattern'] = pattern
+        col = get_collection()
+        col.conf['searchedict_pattern'] = pattern
 
     def on_add_notes(self) -> None:
         rows = self.form.resultTable.selectionModel().selectedRows()
