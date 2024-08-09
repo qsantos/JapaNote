@@ -16,12 +16,11 @@ class GuessEDICTWindow(QDialog):
     instance = None
 
     @classmethod
-    def open(cls, parent: Browser) -> 'GuessEDICTWindow':
+    def open(cls, parent: Browser) -> None:
         if cls.instance is None:
             cls.instance = cls(parent)
         else:
             window_to_front(cls.instance)
-        return cls.instance
 
     def closeEvent(self, evt: QtGui.QCloseEvent) -> None:
         type(self).instance = None

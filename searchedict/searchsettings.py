@@ -11,12 +11,11 @@ class SearchSettingsWindow(QDialog):
     instance = None
 
     @classmethod
-    def open(cls) -> 'SearchEDICTWindow':
+    def open(cls) -> None:
         if cls.instance is None:
             cls.instance = cls()
         else:
             window_to_front(cls.instance)
-        return cls.instance
 
     def closeEvent(self, evt: QtGui.QCloseEvent) -> None:
         type(self).instance = None

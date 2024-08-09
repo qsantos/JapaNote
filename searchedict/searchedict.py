@@ -14,12 +14,11 @@ class SearchEDICTWindow(QMainWindow):
     instance = None
 
     @classmethod
-    def open(cls, pattern: Optional[str] = None) -> 'SearchEDICTWindow':
+    def open(cls, pattern: Optional[str] = None) -> None:
         if cls.instance is None:
             cls.instance = cls(pattern)
         else:
             window_to_front(cls.instance)
-        return cls.instance
 
     def closeEvent(self, evt: QtGui.QCloseEvent) -> None:
         type(self).instance = None
