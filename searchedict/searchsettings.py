@@ -1,5 +1,7 @@
+from typing import Callable
+
 from aqt import mw
-from aqt.qt import QDialog, Qt
+from aqt.qt import QComboBox, QDialog, Qt
 from PyQt5 import QtGui
 
 from . import formsettings
@@ -71,9 +73,9 @@ class SearchSettingsWindow(QDialog):
         if event.key() == Qt.Key_Escape:
             self.close()
 
-    def set_onChange_combobox(self, combobox, config_key) -> None:
-        def _(combobox):
-            def onChange():
+    def set_onChange_combobox(self, combobox: QComboBox, config_key: str) -> None:
+        def _(combobox: QComboBox) -> Callable[[], None]:
+            def onChange() -> None:
                 mw.col.conf[config_key] = combobox.currentText()
                 self.update_warning()
             return onChange
