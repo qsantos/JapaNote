@@ -53,7 +53,7 @@ class SearchEDICTWindow(QMainWindow):
         self.setWindowState(Qt.WindowMaximized)
         self.show()
 
-    def keyPressEvent(self, event) -> None:
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == Qt.Key_Escape:
             self.close()
 
