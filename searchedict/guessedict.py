@@ -1,8 +1,9 @@
 from gettext import ngettext
+from typing import Callable
 
 from aqt import mw
 from aqt.browser import Browser
-from aqt.qt import QDialog, Qt
+from aqt.qt import QComboBox, QDialog, Qt
 from aqt.utils import showInfo, tooltip
 from PyQt5 import QtGui
 
@@ -66,9 +67,9 @@ class GuessEDICTWindow(QDialog):
 
         self.show()
 
-    def set_onChange_combobox(self, combobox, config_key) -> None:
-        def _(combobox):
-            def onChange():
+    def set_onChange_combobox(self, combobox: QComboBox, config_key: str) -> None:
+        def _(combobox: QComboBox) -> Callable[[], None]:
+            def onChange() -> None:
                 col = get_collection()
                 col.conf[config_key] = combobox.currentText() if combobox.currentIndex() != 0 else None
                 col.setMod()
