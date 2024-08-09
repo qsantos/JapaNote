@@ -76,19 +76,22 @@ class SearchSettingsWindow(QDialog):
     def set_onChange_combobox(self, combobox: QComboBox, config_key: str) -> None:
         def _(combobox: QComboBox) -> Callable[[], None]:
             def onChange() -> None:
-                mw.col.conf[config_key] = combobox.currentText()
+                col = get_collection()
+                col.conf[config_key] = combobox.currentText()
                 self.update_warning()
             return onChange
         combobox.currentIndexChanged.connect(_(combobox))
 
     def onChangeModel(self) -> None:
-        mw.col.conf['searchedict_model'] = self.form.modelBox.currentText()
+        col = get_collection()
+        col.conf['searchedict_model'] = self.form.modelBox.currentText()
         self.update_fieldboxes()
         self.update_warning()
 
     def update_fieldboxes(self) -> None:
-        model_name = mw.col.conf['searchedict_model']
-        model = mw.col.models.by_name(model_name)
+        col = get_collection()
+        model_name = col.conf['searchedict_model']
+        model = col.models.by_name(model_name)
         if not model:
             return
         field_names = [''] + [field['name'] for field in model['flds']]
@@ -106,7 +109,8 @@ class SearchSettingsWindow(QDialog):
         self.form.idBox.addItems(field_names)
 
     def update_warning(self) -> None:
-        if mw.col.conf.get('searchedict_idField'):
+        col = get_collection()
+        if col.conf.get('searchedict_idField'):
             self.form.noidWarning.hide()
         else:
             self.form.noidWarning.show()
