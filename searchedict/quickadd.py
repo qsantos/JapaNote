@@ -44,6 +44,7 @@ class QuickAddModule:
         self.bridge = JavaScriptBridge()
 
     def display(self) -> None:
+        assert mw is not None
         self.display_quickadd = True
         if not self.hooked_quickadd:
             # display quick add form
@@ -63,12 +64,15 @@ class QuickAddModule:
                 web_frame = web_page.mainFrame()
                 web_frame.javaScriptWindowObjectCleared.connect(register_bridge)
 
-        if mw.col is not None:
+        col = mw.col
+        if col is not None:
             refresh_deckBrowser()
 
     def undisplay(self) -> None:
+        assert mw is not None
         self.display_quickadd = True
-        if mw.col is not None:
+        col = mw.col
+        if col is not None:
             refresh_deckBrowser()
 
     def render(self, args: T, _old: Callable[[T], str]) -> str:
