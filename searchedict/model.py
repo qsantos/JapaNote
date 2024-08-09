@@ -1,5 +1,5 @@
 from gettext import ngettext
-from typing import Optional
+from typing import Iterable, Optional
 
 from anki.models import NotetypeDict
 from anki.notes import Note
@@ -47,7 +47,7 @@ def note_set_field(note: Note, config_key: str, value: str) -> None:
         showInfo(f'Note type "{note.model()["name"]}" has not field /{model_field}"')
 
 
-def add_notes(words) -> None:
+def add_notes(words: Iterable[Word]) -> None:
     if not mw.col.conf.get('searchedict_hasopensettings'):
         showInfo('Please check the settings first')
         SearchSettingsWindow.open()
