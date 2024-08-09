@@ -1,6 +1,7 @@
 from gettext import ngettext
 from typing import Optional
 
+from anki.models import NotetypeDict
 from anki.notes import Note
 from aqt import Collection, mw
 from aqt.qt import QAbstractTableModel, Qt
@@ -19,7 +20,7 @@ def get_collection() -> Collection:
     return col
 
 
-def check_field(model, config_key) -> bool:
+def check_field(model: NotetypeDict, config_key: str) -> bool:
     try:
         model_field = mw.col.conf[config_key]
     except KeyError:
