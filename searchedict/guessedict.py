@@ -40,7 +40,8 @@ class GuessEDICTWindow(QDialog):
             self.close()
             return
         note_id = self.note_ids[0]
-        note = mw.col.getNote(note_id)
+        col = get_collection()
+        note = col.getNote(note_id)
         self.model = note.model()
 
         # restore state from configuration
@@ -68,8 +69,9 @@ class GuessEDICTWindow(QDialog):
     def set_onChange_combobox(self, combobox, config_key) -> None:
         def _(combobox):
             def onChange():
-                mw.col.conf[config_key] = combobox.currentText() if combobox.currentIndex() != 0 else None
-                mw.col.setMod()
+                col = get_collection()
+                col.conf[config_key] = combobox.currentText() if combobox.currentIndex() != 0 else None
+                col.setMod()
                 self.update_enabled()
             return onChange
         combobox.currentIndexChanged.connect(_(combobox))
@@ -79,8 +81,9 @@ class GuessEDICTWindow(QDialog):
             self.close()
 
     def onChangeModel(self) -> None:
-        mw.col.conf['guessedict_model'] = self.form.modelBox.currentText()
-        mw.col.setMod()
+        col = get_collection()
+        col.conf['guessedict_model'] = self.form.modelBox.currentText()
+        col.setMod()
         self.update_fieldboxes()
         self.update_enabled()
 
