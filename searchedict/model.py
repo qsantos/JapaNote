@@ -34,7 +34,7 @@ def check_field(model: NotetypeDict, config_key: str) -> bool:
     return False
 
 
-def note_set_field(note, config_key, value) -> None:
+def note_set_field(note: Note, config_key: str, value: str) -> None:
     try:
         model_field = mw.col.conf[config_key]
     except KeyError:
