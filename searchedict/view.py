@@ -1,6 +1,8 @@
 from aqt import mw
 from aqt.qt import QApplication, QComboBox, Qt, QWidget
 
+from .model import get_collection
+
 
 def window_to_front(window: QWidget) -> None:
     window.setWindowState(window.windowState() | Qt.WindowActive)
@@ -9,7 +11,8 @@ def window_to_front(window: QWidget) -> None:
 
 
 def set_combobox_from_config(combobox: QComboBox, elements: list[str], config_key: str) -> None:
-    element = mw.col.conf.setdefault(config_key, elements[0])
+    col = get_collection()
+    element = col.conf.setdefault(config_key, elements[0])
     try:
         element_idx = elements.index(element)
     except ValueError:
