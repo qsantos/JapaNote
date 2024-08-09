@@ -28,6 +28,7 @@ def immediate_redraw(widget: QWidget) -> None:
 
 
 def refresh_deckBrowser() -> None:
+    assert mw is not None
     mw.deckBrowser.web._domDone = True  # bypass Anki 2.1 weirdness
     mw.deckBrowser.refresh()
     mw.deckBrowser.web.update()
