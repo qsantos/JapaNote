@@ -187,6 +187,7 @@ class GuessEDICTWindow(QDialog):
                 note.add_tag('ambiguous')
                 n_ambiguous += 1
             note.flush()
+        assert mw is not None
         mw.reset()
 
         ignored = ngettext('{} card ignored.', '{} cards ignored.', n_ignored).format(n_ignored)
