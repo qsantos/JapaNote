@@ -77,7 +77,7 @@ class GuessEDICTWindow(QDialog):
             return onChange
         combobox.currentIndexChanged.connect(_(combobox))
 
-    def keyPressEvent(self, event) -> None:
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == Qt.Key_Escape:
             self.close()
 
