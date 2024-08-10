@@ -62,3 +62,10 @@ warn_return_any = true
 warn_redundant_casts = true
 # enabled by default in dmypy
 disable_error_code = "var-annotated"
+exclude = "form.*\\.py*"
+
+[[tool.mypy.overrides]]
+module = [
+  "searchedict.*",
+]
+follow_imports = "skip"
