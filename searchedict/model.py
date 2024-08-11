@@ -61,7 +61,7 @@ def add_notes(words: Iterable[Word]) -> None:
     if deck_name is None:
         deck_id = col.decks.selected()
     else:
-        deck_id = col.decks.id(deck_name)
+        deck_id = col.decks.id(deck_name) or col.decks.selected()
     deck = col.decks.get(deck_id)
     if deck is None:
         showInfo('Deck not found')
