@@ -53,16 +53,8 @@ class QuickAddModule:
 
             # add bridge to JavaScript's namespace
             web_page = mw.deckBrowser.web.page()
-            if hasattr(web_page, 'setWebChannel'):  # Qt5
-                channel = web_page.webChannel()
-                channel.registerObject('edict', self.bridge)
-            else:  # Qt4
-                def register_bridge() -> None:
-                    web_page = mw.deckBrowser.web.page()
-                    web_frame = web_page.mainFrame()
-                    web_frame.addToJavaScriptWindowObject('edict', self.bridge)
-                web_frame = web_page.mainFrame()
-                web_frame.javaScriptWindowObjectCleared.connect(register_bridge)
+            channel = web_page.webChannel()
+            channel.registerObject('edict', self.bridge)
 
         col = mw.col
         if col is not None:
