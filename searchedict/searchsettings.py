@@ -5,6 +5,7 @@ from aqt.qt import QComboBox, QDialog, Qt
 from PyQt5 import QtGui
 
 from . import formsettings
+from .collection import get_collection
 from .view import set_combobox_from_config, window_to_front
 
 
@@ -28,7 +29,6 @@ class SearchSettingsWindow(QDialog):
         self.form = formsettings.Ui_searchEdictSettings()
         self.form.setupUi(self)
 
-        from .model import get_collection
         col = get_collection()
 
         col.conf['searchedict_hasopensettings'] = True

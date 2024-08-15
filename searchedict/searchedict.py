@@ -5,7 +5,8 @@ from aqt.qt import QMainWindow, Qt
 from PyQt5 import QtGui
 
 from . import formbrowser
-from .model import add_notes, get_collection, word_search
+from .collection import get_collection
+from .model import add_notes, word_search
 from .searchsettings import SearchSettingsWindow
 from .view import window_to_front
 

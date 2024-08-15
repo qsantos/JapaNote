@@ -1,6 +1,8 @@
 from aqt import mw
 from aqt.qt import QApplication, QComboBox, Qt, QWidget
 
+from .collection import get_collection
+
 
 def window_to_front(window: QWidget) -> None:
     window.setWindowState(window.windowState() | Qt.WindowActive)
@@ -9,7 +11,6 @@ def window_to_front(window: QWidget) -> None:
 
 
 def set_combobox_from_config(combobox: QComboBox, elements: list[str], config_key: str) -> None:
-    from .model import get_collection
     col = get_collection()
     element = col.conf.setdefault(config_key, elements[0])
     try:
