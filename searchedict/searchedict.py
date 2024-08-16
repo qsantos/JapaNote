@@ -2,7 +2,10 @@ from typing import Optional
 
 from aqt import mw
 from aqt.qt import QMainWindow, Qt
-from PyQt5 import QtGui
+try:
+    from PyQt6 import QtGui
+except ImportError:
+    from PyQt5 import QtGui
 
 from . import formbrowser
 from .collection import get_collection

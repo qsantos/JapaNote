@@ -4,7 +4,7 @@ TARGETS:=$(FORMS:.ui=.py)
 all: $(TARGETS)
 
 %.py: %.ui
-	pyuic5 $< -o $@
+	pyuic6 $< -o $@
 
 clean:
 	rm -f $(TARGETS)

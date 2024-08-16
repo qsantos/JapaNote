@@ -6,7 +6,10 @@ from anki.notes import Note
 from aqt import Collection, mw
 from aqt.qt import QAbstractTableModel, Qt
 from aqt.utils import showInfo, tooltip
-from PyQt5 import QtCore
+try:
+    from PyQt6 import QtCore
+except ImportError:
+    from PyQt5 import QtCore
 
 from .collection import get_collection
 from .edict2.deinflect import Deinflector
@@ -119,8 +122,8 @@ class WordSearchModel(QAbstractTableModel):
     def columnCount(self, parent: QtCore.QModelIndex = ...) -> int:
         return 5
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole) -> str:
-        if orientation != Qt.Horizontal or role != Qt.DisplayRole:
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole) -> str:
+        if orientation != Qt.Horizontal or role != Qt.ItemDataRole.DisplayRole:
             return QAbstractTableModel.headerData(self, section, orientation, role)
         return [
             'Kanji',
@@ -130,10 +133,10 @@ class WordSearchModel(QAbstractTableModel):
             'Definition',
         ][section]
 
-    def data(self, index: QtCore.QModelIndex, role: int = Qt.DisplayRole) -> Optional[str]:
+    def data(self, index: QtCore.QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Optional[str]:
         if not index.isValid():
             return None
-        if role == Qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             row: int = index.row()
             word = self.words[row]
             column = index.column()
@@ -152,8 +155,8 @@ class WordSearchModel(QAbstractTableModel):
         else:
             return None
 
-    def sort(self, column: int, order: Qt.SortOrder = Qt.DescendingOrder) -> None:
-        reverse = order == Qt.DescendingOrder
+    def sort(self, column: int, order: Qt.SortOrder = QtCore.Qt.SortOrder.DescendingOrder) -> None:
+        reverse = order == QtCore.Qt.SortOrder.DescendingOrderr
         if column == 0:
             key = lambda word: word.kanji
         elif column == 1:
