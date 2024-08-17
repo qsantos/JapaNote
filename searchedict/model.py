@@ -6,14 +6,11 @@ from anki.notes import Note
 from aqt import Collection, mw
 from aqt.qt import QAbstractTableModel, Qt
 from aqt.utils import showInfo, tooltip
-try:
-    from PyQt6 import QtCore
-except ImportError:
-    from PyQt5 import QtCore
 
 from .collection import get_collection
 from .edict2.deinflect import Deinflector
 from .edict2.search import Word, edict, enamdict
+from .qt import QtCore
 from .searchsettings import SearchSettingsWindow
 
 

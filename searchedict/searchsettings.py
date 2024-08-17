@@ -2,13 +2,10 @@ from typing import Callable
 
 from aqt import mw
 from aqt.qt import QComboBox, QDialog, Qt
-try:
-    from PyQt6 import QtGui
-except ImportError:
-    from PyQt5 import QtGui
 
 from . import formsettings
 from .collection import get_collection
+from .qt import QtGui
 from .view import set_combobox_from_config, window_to_front
 
 
