@@ -3,9 +3,8 @@ from typing import Callable
 from aqt import mw
 from aqt.qt import QComboBox, QDialog, Qt
 
-from . import formsettings
 from .collection import get_collection
-from .qt import QtGui
+from .qt import QtGui, formsettings
 from .view import set_combobox_from_config, window_to_front
 
 

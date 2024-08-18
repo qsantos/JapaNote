@@ -3,10 +3,9 @@ from typing import Optional
 from aqt import mw
 from aqt.qt import QMainWindow, Qt
 
-from . import formbrowser
 from .collection import get_collection
 from .model import add_notes, word_search
-from .qt import QtGui
+from .qt import QtGui, formbrowser
 from .searchsettings import SearchSettingsWindow
 from .view import window_to_front
 

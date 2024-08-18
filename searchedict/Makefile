@@ -1,9 +1,12 @@
 FORMS:=$(wildcard *.ui)
-TARGETS:=$(FORMS:.ui=.py)
+TARGETS:=$(FORMS:.ui=_qt5.py) $(FORMS:.ui=_qt6.py)
 
 all: $(TARGETS)
 
-%.py: %.ui
+%_qt5.py: %.ui
+	pyuic5 $< -o $@
+
+%_qt6.py: %.ui
 	pyuic6 $< -o $@
 
 clean:
