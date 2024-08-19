@@ -47,11 +47,11 @@ class SearchEDICTWindow(QMainWindow):
 
         self.form.pattern.setClearButtonEnabled(True)
 
-        self.setWindowState(Qt.WindowMaximized)
+        self.setWindowState(Qt.WindowState.WindowMaximized)
         self.show()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
-        if event.key() == Qt.Key_Escape:
+        if event.key() == Qt.Key.Key_Escape:
             self.close()
 
     def update_search(self) -> None:
