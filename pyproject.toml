@@ -68,4 +68,4 @@ exclude = "form.*\\.py*"
 module = [
   "searchedict.*",
 ]
-follow_imports = "skip"
+follow_imports = "silent"
