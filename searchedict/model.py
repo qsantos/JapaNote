@@ -121,7 +121,7 @@ class WordSearchModel(QAbstractTableModel):
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole) -> str:
         if orientation != Qt.Orientation.Horizontal or role != Qt.ItemDataRole.DisplayRole:
-            return QAbstractTableModel.headerData(self, section, orientation, role)
+            return QAbstractTableModel.headerData(self, section, orientation, role)  # type: ignore
         return [
             'Kanji',
             'Kana',
