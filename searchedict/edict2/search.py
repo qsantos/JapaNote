@@ -30,9 +30,10 @@ class Word:
     def __repr__(self) -> str:
         return f'<{self.kanji}>'
 
-    def get_sequence_number(self) -> Optional[str]:
+    def get_sequence_number(self) -> str:
         last_gloss = self.glosses.split('/')[-1]
-        return last_gloss if last_gloss[:4] == 'EntL' else None
+        assert last_gloss[:4] == 'EntL'
+        return last_gloss
 
     def get_furigana(self) -> str:
         if self._furigana is None:
