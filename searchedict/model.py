@@ -40,7 +40,11 @@ def note_set_field(note: Note, config_key: str, value: str) -> None:
     try:
         note[model_field] = value if value is not None else ''
     except KeyError:
-        showInfo(f'Note type "{note.model()["name"]}" has not field /{model_field}"')
+        model = col.models.get(note.mid)
+        if model is None:
+            showInfo(f'Model not found')
+        else:
+            showInfo(f'Note type "{model["name"]}" has not field /{model_field}"')
 
 
 def add_notes(words: Iterable[Word]) -> None:
