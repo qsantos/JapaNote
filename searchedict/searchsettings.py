@@ -26,7 +26,7 @@ class SearchSettingsWindow(QDialog):
     def __init__(self) -> None:
         QDialog.__init__(self)
         self.form = formsettings.Ui_searchEdictSettings()
-        self.form.setupUi(self)
+        self.form.setupUi(self)  # type: ignore[no-untyped-call]
 
         col = get_collection()
 

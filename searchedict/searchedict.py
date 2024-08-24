@@ -33,7 +33,7 @@ class SearchEDICTWindow(QMainWindow):
             pattern = col.conf.get('searchedict_pattern', '')
 
         self.form = formbrowser.Ui_MainWindow()
-        self.form.setupUi(self)
+        self.form.setupUi(self)  # type: ignore[no-untyped-call]
         self.form.pattern.setText(pattern)
         self.form.resultTable.setModel(word_search)
 
