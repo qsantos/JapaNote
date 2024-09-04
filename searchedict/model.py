@@ -44,7 +44,7 @@ def note_set_field(note: Note, config_key: str, value: str) -> None:
         if model is None:
             showInfo(f'Model not found')
         else:
-            showInfo(f'Note type "{model["name"]}" has not field /{model_field}"')
+            showInfo(f'Note type "{model["name"]}" has no field "{model_field}"')
 
 
 def add_notes(words: Iterable[Word]) -> None:
