@@ -20,7 +20,7 @@ def check_field(model: NotetypeDict, config_key: str) -> bool:
         model_field = col.conf[config_key]
     except KeyError:
         return True
-    if model_field is None:
+    if not model_field:
         return True
     for field in model['flds']:
         if field['name'] == model_field:
@@ -35,7 +35,7 @@ def note_set_field(note: Note, config_key: str, value: str) -> None:
         model_field = col.conf[config_key]
     except KeyError:
         return
-    if model_field is None:
+    if not model_field:
         return
     try:
         note[model_field] = value if value is not None else ''
