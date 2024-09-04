@@ -5,7 +5,7 @@ from aqt.qt import QMainWindow, Qt
 
 from .collection import get_collection
 from .model import add_notes, word_search
-from .qt import QtGui, formbrowser
+from .qt import QtGui, searchwindow
 from .searchsettings import SearchSettingsWindow
 from .view import window_to_front
 
@@ -32,7 +32,7 @@ class SearchWindow(QMainWindow):
             col = get_collection()
             pattern = col.conf.get('japanote_pattern', '')
 
-        self.form = formbrowser.Ui_MainWindow()
+        self.form = searchwindow.Ui_MainWindow()
         self.form.setupUi(self)  # type: ignore[no-untyped-call]
         self.form.pattern.setText(pattern)
         self.form.resultTable.setModel(word_search)
