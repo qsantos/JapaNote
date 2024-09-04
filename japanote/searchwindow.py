@@ -47,7 +47,6 @@ class SearchWindow(QMainWindow):
 
         self.form.pattern.setClearButtonEnabled(True)
 
-        self.setWindowState(Qt.WindowState.WindowMaximized)
         self.show()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
