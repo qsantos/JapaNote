@@ -102,7 +102,7 @@ def add_notes(words: Iterable[Word]) -> None:
 
         # check for duplicates if id field is set
         idfield = col.conf.get('japanote_idField')
-        if idfield is not None and col.find_notes(f'{idfield}:{word.get_sequence_number()}'):
+        if idfield and col.find_notes(f'{idfield}:{word.get_sequence_number()}'):
             continue
 
         # add card
