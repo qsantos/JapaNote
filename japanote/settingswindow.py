@@ -4,11 +4,11 @@ from aqt import mw
 from aqt.qt import QComboBox, QDialog, Qt
 
 from .collection import get_collection
-from .qt import QtGui, formsettings
+from .qt import QtGui, settingswindow
 from .view import set_combobox_from_config, window_to_front
 
 
-class SearchSettingsWindow(QDialog):
+class SettingsWindow(QDialog):
     instance = None
 
     @classmethod
@@ -25,7 +25,7 @@ class SearchSettingsWindow(QDialog):
 
     def __init__(self) -> None:
         QDialog.__init__(self)
-        self.form = formsettings.Ui_japaNoteSettings()
+        self.form = settingswindow.Ui_japaNoteSettings()
         self.form.setupUi(self)  # type: ignore[no-untyped-call]
 
         col = get_collection()

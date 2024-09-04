@@ -8,7 +8,7 @@ from aqt.utils import showInfo
 
 from .model import add_notes, word_search
 from .searchwindow import SearchWindow
-from .searchsettings import SearchSettingsWindow
+from .settingswindow import SettingsWindow
 from .view import refresh_deckBrowser
 
 
@@ -34,7 +34,7 @@ class JavaScriptBridge(QObject):
 
     @pyqtSlot()
     def showSettings(self) -> None:
-        SearchSettingsWindow.open()
+        SettingsWindow.open()
 
 
 class QuickAddModule:

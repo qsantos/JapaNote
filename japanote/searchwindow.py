@@ -6,7 +6,7 @@ from aqt.qt import QMainWindow, Qt
 from .collection import get_collection
 from .model import add_notes, word_search
 from .qt import QtGui, searchwindow
-from .searchsettings import SearchSettingsWindow
+from .settingswindow import SettingsWindow
 from .view import window_to_front
 
 
@@ -41,7 +41,7 @@ class SearchWindow(QMainWindow):
         self.form.pattern.returnPressed.connect(self.update_search)
         self.form.searchButton.clicked.connect(self.update_search)
         self.form.addButton.clicked.connect(self.on_add_notes)
-        self.form.settingsButton.clicked.connect(SearchSettingsWindow.open)
+        self.form.settingsButton.clicked.connect(SettingsWindow.open)
 
         self.update_search()
 

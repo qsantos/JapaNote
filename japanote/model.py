@@ -11,7 +11,7 @@ from .collection import get_collection
 from .edict2.deinflect import Deinflector
 from .edict2.search import Word, edict, enamdict
 from .qt import QtCore
-from .searchsettings import SearchSettingsWindow
+from .settingswindow import SettingsWindow
 
 
 def check_field(model: NotetypeDict, config_key: str) -> bool:
@@ -51,7 +51,7 @@ def add_notes(words: Iterable[Word]) -> None:
     col = get_collection()
     if not col.conf.get('japanote_hasopensettings'):
         showInfo('Please check the settings first')
-        SearchSettingsWindow.open()
+        SettingsWindow.open()
         return
 
     # select deck
