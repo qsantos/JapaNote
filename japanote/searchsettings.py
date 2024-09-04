@@ -69,7 +69,7 @@ class SearchSettingsWindow(QDialog):
         self.show()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
-        if event.key() == Qt.Key_Escape:
+        if event.key() == Qt.Key.Key_Escape:
             self.close()
 
     def set_onChange_combobox(self, combobox: QComboBox, config_key: str) -> None:
