@@ -73,9 +73,9 @@ class QuickAddModule:
             return ret
         ret += """
     <fieldset style="width:500px; margin:30px 0 30px 0">
-        <legend>Quick EDICT add</legend>
+        <legend>JapaNote: create a note for a Japanese word</legend>
         <input style="height:1.8em" type="text" id="quick-add-pattern" placeholder="あんき">
-        <input style="width:120px;" type="button" id="quick-add-button" value="Add EDICT note">
+        <input style="width:120px;" type="button" id="quick-add-button" value="Add Japanese note">
         <input style="width:120px;" type="button" id="quick-add-settings" value="Settings">
     </fieldset>
 
