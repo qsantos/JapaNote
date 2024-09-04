@@ -57,7 +57,9 @@ markupsafe==2.1.5
     #   jinja2
     #   werkzeug
 mypy==1.11.1
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   pyside6-stubs
 mypy-extensions==1.0.0
     # via mypy
 orjson==3.10.6
@@ -75,6 +77,16 @@ pyproject-hooks==1.1.0
     #   build
     #   pip-tools
 pyqt5-stubs==5.15.6.0
+    # via -r requirements.in
+pyside6==6.7.2
+    # via pyside6-stubs
+pyside6-addons==6.7.2
+    # via pyside6
+pyside6-essentials==6.7.2
+    # via
+    #   pyside6
+    #   pyside6-addons
+pyside6-stubs==6.4.2.0
     # via -r requirements.in
 pysocks==1.7.1
     # via requests
@@ -94,6 +106,11 @@ ruff==0.5.6
     # via -r requirements.in
 send2trash==1.8.3
     # via aqt
+shiboken6==6.7.2
+    # via
+    #   pyside6
+    #   pyside6-addons
+    #   pyside6-essentials
 soupsieve==2.5
     # via beautifulsoup4
 typing-extensions==4.12.2
