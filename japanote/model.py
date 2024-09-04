@@ -7,6 +7,7 @@ from aqt import Collection, mw
 from aqt.qt import QAbstractTableModel, Qt
 from aqt.utils import showInfo, tooltip
 
+from . import romkan
 from .collection import get_collection
 from .edict2.deinflect import Deinflector
 from .edict2.search import Word, edict, enamdict
@@ -169,6 +170,7 @@ class WordSearchModel(QAbstractTableModel):
         self.modelReset.emit()
 
     def search(self, word: str) -> None:
+        word = romkan.to_hiragana(word)
         self.modelAboutToBeReset.emit()
         self.words = []
         for candidate in set(deinflector(word)):
