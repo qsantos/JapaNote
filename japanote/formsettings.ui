@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>searchEdictSettings</class>
- <widget class="QDialog" name="searchEdictSettings">
+ <class>japaNoteSettings</class>
+ <widget class="QDialog" name="japaNoteSettings">
   <property name="windowModality">
    <enum>Qt::NonModal</enum>
   </property>
@@ -20,7 +20,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>Search EDICT settings</string>
+   <string>JapaNote settings</string>
   </property>
   <property name="modal">
    <bool>true</bool>

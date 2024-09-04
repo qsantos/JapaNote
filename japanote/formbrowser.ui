@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Search EDICT</string>
+   <string>JapaNote: select a word</string>
   </property>
   <property name="unifiedTitleAndToolBarOnMac">
    <bool>false</bool>

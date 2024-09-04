@@ -66,6 +66,6 @@ exclude = "form.*\\.py*"
 
 [[tool.mypy.overrides]]
 module = [
-  "searchedict.*",
+  "japanote.*",
 ]
 follow_imports = "silent"

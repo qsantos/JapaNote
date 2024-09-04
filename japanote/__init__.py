@@ -4,7 +4,7 @@ from aqt.browser import Browser
 from aqt.qt import QAction
 
 from .quickadd import QuickAddModule
-from .searchedict import SearchEDICTWindow
+from .searchwindow import SearchWindow
 
 
 def add_menu_entries_to_browser(self: Browser) -> None:
@@ -12,7 +12,7 @@ def add_menu_entries_to_browser(self: Browser) -> None:
     menu.addSeparator()
 
     action = QAction('Browse EDICT...', mw)
-    action.triggered.connect(lambda: SearchEDICTWindow.open())
+    action.triggered.connect(lambda: SearchWindow.open())
     menu.addAction(action)
 
 

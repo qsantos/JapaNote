@@ -10,7 +10,7 @@ from .searchsettings import SearchSettingsWindow
 from .view import window_to_front
 
 
-class SearchEDICTWindow(QMainWindow):
+class SearchWindow(QMainWindow):
     instance = None
 
     @classmethod
@@ -30,7 +30,7 @@ class SearchEDICTWindow(QMainWindow):
 
         if pattern is None:
             col = get_collection()
-            pattern = col.conf.get('searchedict_pattern', '')
+            pattern = col.conf.get('japanote_pattern', '')
 
         self.form = formbrowser.Ui_MainWindow()
         self.form.setupUi(self)  # type: ignore[no-untyped-call]
@@ -61,7 +61,7 @@ class SearchEDICTWindow(QMainWindow):
         word_search.search(pattern)
         # save settings for persistence
         col = get_collection()
-        col.conf['searchedict_pattern'] = pattern
+        col.conf['japanote_pattern'] = pattern
 
     def on_add_notes(self) -> None:
         rows = self.form.resultTable.selectionModel().selectedRows()

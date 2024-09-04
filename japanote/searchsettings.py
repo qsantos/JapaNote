@@ -25,12 +25,12 @@ class SearchSettingsWindow(QDialog):
 
     def __init__(self) -> None:
         QDialog.__init__(self)
-        self.form = formsettings.Ui_searchEdictSettings()
+        self.form = formsettings.Ui_japaNoteSettings()
         self.form.setupUi(self)  # type: ignore[no-untyped-call]
 
         col = get_collection()
 
-        col.conf['searchedict_hasopensettings'] = True
+        col.conf['japanote_hasopensettings'] = True
 
         deck_names = sorted(deck.name for deck in col.decks.all_names_and_ids())
         model_names = sorted(model.name for model in col.models.all_names_and_ids())
@@ -41,30 +41,30 @@ class SearchSettingsWindow(QDialog):
 
         # restore state from configuration
         # deck
-        set_combobox_from_config(self.form.deckBox, deck_names, 'searchedict_deck')
+        set_combobox_from_config(self.form.deckBox, deck_names, 'japanote_deck')
         # model
-        set_combobox_from_config(self.form.modelBox, model_names, 'searchedict_model')
+        set_combobox_from_config(self.form.modelBox, model_names, 'japanote_model')
         self.update_fieldboxes()  # fill combo boxes for selected model
         self.update_warning()
         # field mapping
-        model_name = col.conf.setdefault('searchedict_model', model_names[0])
+        model_name = col.conf.setdefault('japanote_model', model_names[0])
         model = col.models.by_name(model_name)
         if model:
             field_names = [''] + [field['name'] for field in model['flds']]
-            set_combobox_from_config(self.form.kanjiBox, field_names, 'searchedict_kanjiField')
-            set_combobox_from_config(self.form.kanaBox, field_names, 'searchedict_kanaField')
-            set_combobox_from_config(self.form.furiganaBox, field_names, 'searchedict_furiganaField')
-            set_combobox_from_config(self.form.definitionBox, field_names, 'searchedict_definitionField')
-            set_combobox_from_config(self.form.idBox, field_names, 'searchedict_idField')
+            set_combobox_from_config(self.form.kanjiBox, field_names, 'japanote_kanjiField')
+            set_combobox_from_config(self.form.kanaBox, field_names, 'japanote_kanaField')
+            set_combobox_from_config(self.form.furiganaBox, field_names, 'japanote_furiganaField')
+            set_combobox_from_config(self.form.definitionBox, field_names, 'japanote_definitionField')
+            set_combobox_from_config(self.form.idBox, field_names, 'japanote_idField')
 
         # events
-        self.set_onChange_combobox(self.form.deckBox, 'searchedict_deck')
+        self.set_onChange_combobox(self.form.deckBox, 'japanote_deck')
         self.form.modelBox.currentIndexChanged.connect(self.onChangeModel)
-        self.set_onChange_combobox(self.form.kanjiBox, 'searchedict_kanjiField')
-        self.set_onChange_combobox(self.form.kanaBox, 'searchedict_kanaField')
-        self.set_onChange_combobox(self.form.furiganaBox, 'searchedict_furiganaField')
-        self.set_onChange_combobox(self.form.definitionBox, 'searchedict_definitionField')
-        self.set_onChange_combobox(self.form.idBox, 'searchedict_idField')
+        self.set_onChange_combobox(self.form.kanjiBox, 'japanote_kanjiField')
+        self.set_onChange_combobox(self.form.kanaBox, 'japanote_kanaField')
+        self.set_onChange_combobox(self.form.furiganaBox, 'japanote_furiganaField')
+        self.set_onChange_combobox(self.form.definitionBox, 'japanote_definitionField')
+        self.set_onChange_combobox(self.form.idBox, 'japanote_idField')
 
         self.show()
 
@@ -83,13 +83,13 @@ class SearchSettingsWindow(QDialog):
 
     def onChangeModel(self) -> None:
         col = get_collection()
-        col.conf['searchedict_model'] = self.form.modelBox.currentText()
+        col.conf['japanote_model'] = self.form.modelBox.currentText()
         self.update_fieldboxes()
         self.update_warning()
 
     def update_fieldboxes(self) -> None:
         col = get_collection()
-        model_name = col.conf['searchedict_model']
+        model_name = col.conf['japanote_model']
         model = col.models.by_name(model_name)
         if not model:
             return
@@ -109,7 +109,7 @@ class SearchSettingsWindow(QDialog):
 
     def update_warning(self) -> None:
         col = get_collection()
-        if col.conf.get('searchedict_idField'):
+        if col.conf.get('japanote_idField'):
             self.form.noidWarning.hide()
         else:
             self.form.noidWarning.show()

@@ -49,13 +49,13 @@ def note_set_field(note: Note, config_key: str, value: str) -> None:
 
 def add_notes(words: Iterable[Word]) -> None:
     col = get_collection()
-    if not col.conf.get('searchedict_hasopensettings'):
+    if not col.conf.get('japanote_hasopensettings'):
         showInfo('Please check the settings first')
         SearchSettingsWindow.open()
         return
 
     # select deck
-    deck_name = col.conf.get('searchedict_deck')
+    deck_name = col.conf.get('japanote_deck')
     if deck_name is None:
         deck_id = col.decks.selected()
     else:
@@ -67,7 +67,7 @@ def add_notes(words: Iterable[Word]) -> None:
 
     # select model
     try:
-        model_name = col.conf['searchedict_model']
+        model_name = col.conf['japanote_model']
     except KeyError:
         showInfo('Note type is not set')
         return
@@ -78,15 +78,15 @@ def add_notes(words: Iterable[Word]) -> None:
     model['did'] = deck['id']  # update model's default deck
 
     # check fields
-    if not check_field(model, 'searchedict_kanjiField'):
+    if not check_field(model, 'japanote_kanjiField'):
         return
-    if not check_field(model, 'searchedict_kanaField'):
+    if not check_field(model, 'japanote_kanaField'):
         return
-    if not check_field(model, 'searchedict_furiganaField'):
+    if not check_field(model, 'japanote_furiganaField'):
         return
-    if not check_field(model, 'searchedict_definitionField'):
+    if not check_field(model, 'japanote_definitionField'):
         return
-    if not check_field(model, 'searchedict_idField'):
+    if not check_field(model, 'japanote_idField'):
         return
 
     n_newcards = 0
@@ -94,14 +94,14 @@ def add_notes(words: Iterable[Word]) -> None:
         # create new note
         note = Note(col, model)
         # fill new note
-        note_set_field(note, 'searchedict_kanjiField', word.kanji)
-        note_set_field(note, 'searchedict_kanaField', word.kana)
-        note_set_field(note, 'searchedict_furiganaField', word.get_furigana())
-        note_set_field(note, 'searchedict_definitionField', word.get_meanings_html())
-        note_set_field(note, 'searchedict_idField', word.get_sequence_number())
+        note_set_field(note, 'japanote_kanjiField', word.kanji)
+        note_set_field(note, 'japanote_kanaField', word.kana)
+        note_set_field(note, 'japanote_furiganaField', word.get_furigana())
+        note_set_field(note, 'japanote_definitionField', word.get_meanings_html())
+        note_set_field(note, 'japanote_idField', word.get_sequence_number())
 
         # check for duplicates if id field is set
-        idfield = col.conf.get('searchedict_idField')
+        idfield = col.conf.get('japanote_idField')
         if idfield is not None and col.find_notes(f'{idfield}:{word.get_sequence_number()}'):
             continue
 

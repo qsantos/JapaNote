@@ -1,4 +1,4 @@
 *.pyc
 form*.py
 venv/
-searchedict/meta.json
+japanote/meta.json
