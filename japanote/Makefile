@@ -12,4 +12,7 @@ all: $(TARGETS)
 clean:
 	rm -f $(TARGETS)
 
+package:
+	zip -r japanote.ankiaddon *.py edict2/*.py edict2/deinflect.dat edict2/edict2 edict2/enamdict edict2/kanjidic
+
 .PHONY: all clean
