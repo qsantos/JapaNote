@@ -370,7 +370,7 @@ def pairs(arr, size=2):
 KANROM = {}
 ROMKAN = {}
 
-for pair in pairs(re.split("\s+", KUNREITAB + HEPBURNTAB)):
+for pair in pairs(re.split(r"\s+", KUNREITAB + HEPBURNTAB)):
     kana, roma = pair
     KANROM[kana] = roma
     ROMKAN[roma] = kana
@@ -390,8 +390,8 @@ ROMPAT = re.compile("|".join(sorted(ROMKAN.keys(), key=_len_cmp)) )
 _kanpat_cmp = lambda x, y: (len(y) > len(x)) - (len(y) < len(x)) or (len(KANROM[x]) > len(KANROM[x])) - (len(KANROM[x]) < len(KANROM[x]))
 KANPAT = re.compile("|".join(sorted(KANROM.keys(), key=cmp_to_key(_kanpat_cmp))))
 
-KUNREI = [y for (x, y) in pairs(re.split("\s+", KUNREITAB)) ]
-HEPBURN = [y for (x, y) in pairs(re.split("\s+", HEPBURNTAB) )]
+KUNREI = [y for (x, y) in pairs(re.split(r"\s+", KUNREITAB)) ]
+HEPBURN = [y for (x, y) in pairs(re.split(r"\s+", HEPBURNTAB) )]
 
 KUNPAT = re.compile("|".join(sorted(KUNREI, key=_len_cmp)) )
 HEPPAT = re.compile("|".join(sorted(HEPBURN, key=_len_cmp)) )
@@ -412,7 +412,7 @@ TO_HEPBURN.update( {'ti': 'chi' })
 KANROM_H = {}
 ROMKAN_H = {}
 
-for pair in pairs(re.split("\s+", KUNREITAB_H + HEPBURNTAB_H)):
+for pair in pairs(re.split(r"\s+", KUNREITAB_H + HEPBURNTAB_H)):
     kana, roma = pair
     KANROM_H[kana] = roma
     ROMKAN_H[roma] = kana
@@ -432,8 +432,8 @@ ROMPAT_H = re.compile("|".join(sorted(ROMKAN_H.keys(), key=_len_cmp)) )
 _kanpat_cmp = lambda x, y: (len(y) > len(x)) - (len(y) < len(x)) or (len(KANROM_H[x]) > len(KANROM_H[x])) - (len(KANROM_H[x]) < len(KANROM_H[x]))
 KANPAT_H = re.compile("|".join(sorted(KANROM_H.keys(), key=cmp_to_key(_kanpat_cmp))))
 
-KUNREI_H = [y for (x, y) in pairs(re.split("\s+", KUNREITAB_H)) ]
-HEPBURN_H = [y for (x, y) in pairs(re.split("\s+", HEPBURNTAB_H) )]
+KUNREI_H = [y for (x, y) in pairs(re.split(r"\s+", KUNREITAB_H)) ]
+HEPBURN_H = [y for (x, y) in pairs(re.split(r"\s+", HEPBURNTAB_H) )]
 
 KUNPAT_H = re.compile("|".join(sorted(KUNREI_H, key=_len_cmp)) )
 HEPPAT_H = re.compile("|".join(sorted(HEPBURN_H, key=_len_cmp)) )
