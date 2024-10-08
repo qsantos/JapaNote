@@ -5,7 +5,7 @@ default_kanjidic = os.path.join(os.path.dirname(__file__), 'kanjidic')
 
 
 class Kanji:
-    def __init__(self, character: str, readings: list[str], meanings: set[str]) -> None:
+    def __init__(self, character: str, readings: set[str], meanings: set[str]) -> None:
         self.character = character
         self.readings = readings
         self.meanings = meanings
