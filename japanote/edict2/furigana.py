@@ -67,3 +67,10 @@ def furigana_from_match(match: list[tuple[str, str]]) -> str:
                 yield f'{kanji}[{kana}]'
             last_was_kana = kanji == kana
     return ''.join(_())
+
+
+assert furigana_from_kanji_kana('私', 'わたし') == '私[わたし]'
+assert furigana_from_kanji_kana('牛肉', 'ぎゅうにく') == '牛[ぎゅう]肉[にく]'
+assert furigana_from_kanji_kana('一二三四五六七八九十', 'いちにさんしごろくななはちきゅうじゅう') == '一[いち]二[に]三[さん]四[し]五[ご]六[ろく]七[なな]八[はち]九[きゅう]十[じゅう]'
+assert furigana_from_kanji_kana('等々', 'などなど') == '等[など]々[など]'
+assert furigana_from_kanji_kana('日帰り', 'ひがえり') == '日[ひ]帰[がえ]り'
