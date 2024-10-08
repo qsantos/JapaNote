@@ -1,9 +1,19 @@
 from collections import deque
-from typing import Iterator
+from typing import Iterator, Optional
 
 from .kanji import load_kanjidic
 
 kanjidic = None
+
+
+def lengthen_vowel(s: str) -> Optional[str]:
+    last_kana = s[-1]
+    if last_kana in 'かさたなはまやらわがざだばぱか゚ら゚ゃ': return s + 'あ'
+    if last_kana in 'きしちにひみ𛀆りゐぎじぢびぴき゚り゚': return s + 'い'
+    if last_kana in 'くすつぬふむゆる𛄟ぐずづぶぷく゚る゚ゅ': return s + 'う'
+    if last_kana in 'けせてねへめ𛀁れゑげぜでべぺけ゚れ゚': return s + 'え'
+    if last_kana in 'こそとのほもよろをごぞどぼぽこ゚ろ゚ょ': return s + 'お'
+    return None
 
 
 def furigana_from_kanji_kana(kanji: str, kana: str) -> str:
@@ -26,20 +36,30 @@ def match_from_kanji_kana(kanji: str, kana: str) -> Iterator[list[tuple[str, str
     q = deque([([], kanji, kana)])
     while q:
         match_prefix, kanji, kana = q.popleft()
+        # skip not-kanji
         if not kanji and not kana:
             yield match_prefix
         if not kanji or not kana:
             continue
+        # look up kanji readings
         c = kanji[0]
         if c == '々' and match_prefix:
-            readings = [match_prefix[-1][1]]  # TODO: dakuten
+            readings = {match_prefix[-1][1]}  # TODO: dakuten
         else:
             try:
                 kanjiinfo = kanjidic[c]
             except KeyError:
-                readings = [c]
+                readings = {c}
             else:
                 readings = kanjiinfo.readings
+        # last vowel lengthening
+        lengthened_readings = set()
+        for reading in readings:
+            lengthened = lengthen_vowel(reading)
+            if lengthened is not None:
+                lengthened_readings.add(lengthened)
+        readings |= lengthened_readings
+        # recurse
         for reading in readings:
             if kana.startswith(reading):
                 new_prefixes = match_prefix + [(c, reading)]
