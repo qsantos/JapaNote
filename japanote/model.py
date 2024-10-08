@@ -158,7 +158,7 @@ class WordSearchModel(QAbstractTableModel):
             return None
 
     def sort(self, column: int, order: Qt.SortOrder = QtCore.Qt.SortOrder.DescendingOrder) -> None:
-        reverse = order == QtCore.Qt.SortOrder.DescendingOrderr
+        reverse = order == QtCore.Qt.SortOrder.DescendingOrder
         if column == 0:
             key = lambda word: word.kanji
         elif column == 1:
