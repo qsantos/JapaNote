@@ -62,7 +62,11 @@ warn_return_any = true
 warn_redundant_casts = true
 # enabled by default in dmypy
 disable_error_code = "var-annotated"
-exclude = ".*_qt.\\.py*"
+exclude = [
+    ".*_qt.\\.py*",
+    "romkan.py",
+]
+
 
 [[tool.mypy.overrides]]
 module = [
