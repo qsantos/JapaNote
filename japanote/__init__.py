@@ -59,11 +59,9 @@ def render(self: DeckBrowser, _old: Callable[[DeckBrowser], str]) -> str:
         })}, 100);
     }
     (function(){
-    const quickadd = document.getElementById('quick-add-button');
     const pattern = document.getElementById('quick-add-pattern');
-    const settings = document.getElementById('quick-add-settings');
-    quickadd.addEventListener('click', function(event) { edict.quickAdd(pattern.value); });
-    settings.addEventListener('click', function(event) { edict.showSettings() });
+    document.getElementById('quick-add-button').addEventListener('click', function(event) { edict.quickAdd(pattern.value); });
+    document.getElementById('quick-add-settings').addEventListener('click', function(event) { edict.showSettings() });
     pattern.addEventListener('keypress', function(event) { if (event.keyCode == 13) { edict.quickAdd(pattern.value) } });
     })();
     </script>"""
