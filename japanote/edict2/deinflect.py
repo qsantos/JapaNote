@@ -18,7 +18,7 @@ class Candidate(NamedTuple):
 
 SuffixToRules = dict[str, Tuple[list[Rule], 'SuffixToRules']]
 
-# deinflect.dat countains instructions to remove inflections from words
+# deinflect.dat contains instructions to remove inflections from words
 # the first line is a header
 # the next few lines (without '\t') are a string array refereced to later
 # the rest are made of four fields separated by '\t'
