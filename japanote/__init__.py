@@ -37,6 +37,9 @@ class JavaScriptBridge(QObject):
         SettingsWindow.open()
 
 
+bridge = JavaScriptBridge()
+
+
 def render(self: DeckBrowser, _old: Callable[[DeckBrowser], str]) -> str:
     return _old(self) + """
     <fieldset style="width:500px; margin:30px 0 30px 0">
@@ -66,18 +69,16 @@ def render(self: DeckBrowser, _old: Callable[[DeckBrowser], str]) -> str:
     </script>"""
 
 
-class QuickAddModule:
-    def __init__(self) -> None:
-        assert mw is not None
+def main() -> None:
+    assert mw is not None
 
-        # display quick add form
-        DeckBrowser._renderStats = wrap(DeckBrowser._renderStats, render, 'around')
+    # display quick add form
+    DeckBrowser._renderStats = wrap(DeckBrowser._renderStats, render, 'around')
 
-        # add bridge to JavaScript's namespace
-        self.bridge = JavaScriptBridge()
-        web_page = mw.deckBrowser.web.page()
-        channel = web_page.webChannel()
-        channel.registerObject('edict', self.bridge)
+    # add bridge to JavaScript's namespace
+    web_page = mw.deckBrowser.web.page()
+    channel = web_page.webChannel()
+    channel.registerObject('edict', bridge)
 
 
-QuickAddModule()
+main()
