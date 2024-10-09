@@ -117,6 +117,7 @@ class WordSearchModel(QAbstractTableModel):
     def __init__(self) -> None:
         QAbstractTableModel.__init__(self)
         self.words: list[Word] = []
+        self.is_proper_noun = False
 
     def rowCount(self, parent: QtCore.QModelIndex = ...) -> int:
         return len(self.words)
@@ -172,12 +173,14 @@ class WordSearchModel(QAbstractTableModel):
     def search(self, word: str) -> None:
         word = romkan.to_hiragana(word)
         self.modelAboutToBeReset.emit()
-        self.words = []
-        for candidate in set(deinflector(word)):
-            for word2 in edict.search(candidate.word):
-                if word2.get_type() & candidate.type_:
-                    self.words.append(word2)
-        self.words += list(enamdict.search(word))
+        if self.is_proper_noun:
+            self.words = list(enamdict.search(word))
+        else:
+            self.words = []
+            for candidate in set(deinflector(word)):
+                for word2 in edict.search(candidate.word):
+                    if word2.get_type() & candidate.type_:
+                        self.words.append(word2)
         self.modelReset.emit()
 
 
