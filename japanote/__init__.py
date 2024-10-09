@@ -46,7 +46,7 @@ def render(self: DeckBrowser, _old: Callable[[DeckBrowser], str]) -> str:
     return _old(self) + """
     <fieldset style="width:500px; margin:30px 0 30px 0">
         <legend>JapaNote: create a note for a Japanese word</legend>
-        <input style="height:1.8em" type="text" id="quick-add-pattern" placeholder="あんき" autofocus>
+        <input style="height:2em; box-sizing:border-box; width:100%; margin:5px; padding:5px;" type="text" id="quick-add-pattern" placeholder="あんき" autofocus>
         <button onclick="edict.quickAdd(quickAddPattern.value);">Add Word</button>
         <button onclick="edict.quickAdd(quickAddPattern.value, true)">Add Proper Noun</button>
         <button onclick="edict.showSettings()">Settings</button>
