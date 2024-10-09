@@ -39,39 +39,19 @@ class JavaScriptBridge(QObject):
 
 class QuickAddModule:
     def __init__(self) -> None:
-        self.display_quickadd = False
-        self.hooked_quickadd = False
+        assert mw is not None
+
+        # display quick add form
+        DeckBrowser._renderStats = wrap(DeckBrowser._renderStats, self.render, 'around')
+
+        # add bridge to JavaScript's namespace
         self.bridge = JavaScriptBridge()
-
-    def display(self) -> None:
-        assert mw is not None
-        self.display_quickadd = True
-        if not self.hooked_quickadd:
-            # display quick add form
-            DeckBrowser._renderStats = wrap(DeckBrowser._renderStats, self.render, 'around')
-            self.hooked_quickadd = True
-
-            # add bridge to JavaScript's namespace
-            web_page = mw.deckBrowser.web.page()
-            channel = web_page.webChannel()
-            channel.registerObject('edict', self.bridge)
-
-        col = mw.col
-        if col is not None:
-            refresh_deckBrowser()
-
-    def undisplay(self) -> None:
-        assert mw is not None
-        self.display_quickadd = True
-        col = mw.col
-        if col is not None:
-            refresh_deckBrowser()
+        web_page = mw.deckBrowser.web.page()
+        channel = web_page.webChannel()
+        channel.registerObject('edict', self.bridge)
 
     def render(self, args: T, _old: Callable[[T], str]) -> str:
-        ret = _old(args)
-        if not self.display_quickadd:
-            return ret
-        ret += """
+        return _old(args) + """
     <fieldset style="width:500px; margin:30px 0 30px 0">
         <legend>JapaNote: create a note for a Japanese word</legend>
         <input style="height:1.8em" type="text" id="quick-add-pattern" placeholder="あんき" autofocus>
@@ -97,4 +77,3 @@ class QuickAddModule:
     pattern.addEventListener('keypress', function(event) { if (event.keyCode == 13) { edict.quickAdd(pattern.value) } });
     })();
     </script>"""
-        return ret
