@@ -89,9 +89,9 @@ class QuickAddModule:
         })}, 100);
     }
     (function(){
-    const quickadd = document.querySelector('#quick-add-button');
-    const pattern = document.querySelector('#quick-add-pattern');
-    const settings = document.querySelector('#quick-add-settings');
+    const quickadd = document.getElementById('quick-add-button');
+    const pattern = document.getElementById('quick-add-pattern');
+    const settings = document.getElementById('quick-add-settings');
     quickadd.addEventListener('click', function(event) { if (edict.quickAdd(pattern.value)) { pattern.value = ''; } });
     settings.addEventListener('click', function(event) { edict.showSettings() });
     pattern.addEventListener('keypress', function(event) { if (event.keyCode == 13) { edict.quickAdd(pattern.value) } });
