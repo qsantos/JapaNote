@@ -45,8 +45,8 @@ def render(self: DeckBrowser, _old: Callable[[DeckBrowser], str]) -> str:
     <fieldset style="width:500px; margin:30px 0 30px 0">
         <legend>JapaNote: create a note for a Japanese word</legend>
         <input style="height:1.8em" type="text" id="quick-add-pattern" placeholder="あんき" autofocus>
-        <input style="width:120px;" type="button" id="quick-add-button" value="Add Japanese note">
-        <input style="width:120px;" type="button" id="quick-add-settings" value="Settings">
+        <button id="quick-add-button">Add Japanese note</button>
+        <button id="quick-add-settings">Settings</button>
     </fieldset>
 
     <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
