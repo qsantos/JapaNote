@@ -37,21 +37,8 @@ class JavaScriptBridge(QObject):
         SettingsWindow.open()
 
 
-class QuickAddModule:
-    def __init__(self) -> None:
-        assert mw is not None
-
-        # display quick add form
-        DeckBrowser._renderStats = wrap(DeckBrowser._renderStats, self.render, 'around')
-
-        # add bridge to JavaScript's namespace
-        self.bridge = JavaScriptBridge()
-        web_page = mw.deckBrowser.web.page()
-        channel = web_page.webChannel()
-        channel.registerObject('edict', self.bridge)
-
-    def render(self, args: T, _old: Callable[[T], str]) -> str:
-        return _old(args) + """
+def render(self: DeckBrowser, _old: Callable[[DeckBrowser], str]) -> str:
+    return _old(self) + """
     <fieldset style="width:500px; margin:30px 0 30px 0">
         <legend>JapaNote: create a note for a Japanese word</legend>
         <input style="height:1.8em" type="text" id="quick-add-pattern" placeholder="あんき" autofocus>
@@ -77,6 +64,20 @@ class QuickAddModule:
     pattern.addEventListener('keypress', function(event) { if (event.keyCode == 13) { edict.quickAdd(pattern.value) } });
     })();
     </script>"""
+
+
+class QuickAddModule:
+    def __init__(self) -> None:
+        assert mw is not None
+
+        # display quick add form
+        DeckBrowser._renderStats = wrap(DeckBrowser._renderStats, render, 'around')
+
+        # add bridge to JavaScript's namespace
+        self.bridge = JavaScriptBridge()
+        web_page = mw.deckBrowser.web.page()
+        channel = web_page.webChannel()
+        channel.registerObject('edict', self.bridge)
 
 
 QuickAddModule()
