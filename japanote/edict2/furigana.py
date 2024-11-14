@@ -6,6 +6,14 @@ from .kanji import load_kanjidic
 kanjidic = None
 
 
+def hiragana_to_katakana(c: str) -> str:
+    return chr(ord(c) - 0x3041 + 0x30a1)
+
+
+assert hiragana_to_katakana('あ') == 'ア'
+assert hiragana_to_katakana('っ') == 'ッ'
+
+
 def lengthen_vowel(s: str) -> Optional[str]:
     last_kana = s[-1]
     if last_kana in 'かさたなはまやらわがざだばぱか゚ら゚ゃ': return s + 'あ'
@@ -61,7 +69,7 @@ def match_from_kanji_kana(kanji: str, kana: str) -> Iterator[list[tuple[str, str
         readings |= lengthened_readings
         # recurse
         for reading in readings:
-            if kana.startswith(reading):
+            if hiragana_to_katakana(kana[0]) == reading or kana.startswith(reading):
                 new_prefixes = match_prefix + [(c, reading)]
                 new_kanji = kanji[1:]
                 new_kana = kana[len(reading):]
@@ -97,3 +105,4 @@ assert furigana_from_kanji_kana('日帰り', 'ひがえり') == '日[ひ]帰[が
 assert furigana_from_kanji_kana('判官', 'はんがん') == '判[はん]官[がん]'
 assert furigana_from_kanji_kana('贔屓', 'ひいき') == '贔[ひい]屓[き]'
 assert furigana_from_kanji_kana('判官贔屓', 'はんがんびいき') == '判[はん]官[がん]贔[びい]屓[き]'
+assert furigana_from_kanji_kana('メッタ刺し', 'めったざし') == 'メッタ 刺[ざ]し'
