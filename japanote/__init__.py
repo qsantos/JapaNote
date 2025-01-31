@@ -47,8 +47,8 @@ def render(self: DeckBrowser, _old: Callable[[DeckBrowser], str]) -> str:
     <fieldset style="width:500px; margin:30px 0 30px 0">
         <legend>JapaNote: create a note for a Japanese word</legend>
         <input style="height:2em; box-sizing:border-box; width:100%; margin:5px; padding:5px;" type="text" id="quick-add-pattern" placeholder="あんき" autofocus>
-        <button onclick="edict.quickAdd(quickAddPattern.value);" style="border:2px solid black">Add Word</button>
-        <button onclick="edict.quickAdd(quickAddPattern.value, true)">Add Proper Noun</button>
+        <button onclick="quickAddWord()" style="border:2px solid black">Add Word</button>
+        <button onclick="quickAddNoun()">Add Proper Noun</button>
         <button onclick="edict.showSettings()">Settings</button>
     </fieldset>
     <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
@@ -60,11 +60,15 @@ def render(self: DeckBrowser, _old: Callable[[DeckBrowser], str]) -> str:
                 window.edict = channel.objects.edict;
         })}, 100);
     }
+    function quickAddWord() {
+        edict.quickAdd(quickAddPattern.value);
+    }
+    function quickAddNoun() {
+        edict.quickAdd(quickAddPattern.value, true);
+    }
     const quickAddPattern = document.getElementById('quick-add-pattern');
     quickAddPattern.addEventListener('keypress', function(event) {
-        if (event.keyCode == 13) {
-            edict.quickAdd(quickAddPattern.value);
-        }
+        if (event.keyCode == 13) { quickAddWord(); }
     });
     </script>"""
 
