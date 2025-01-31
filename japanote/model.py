@@ -3,7 +3,7 @@ from typing import Iterable, Optional
 
 from anki.models import NotetypeDict
 from anki.notes import Note
-from aqt import Collection, mw
+from aqt import Collection
 from aqt.qt import QAbstractTableModel, Qt
 from aqt.utils import showInfo, tooltip
 
@@ -108,8 +108,6 @@ def add_notes(words: Iterable[Word]) -> None:
 
         # add card
         n_newcards += col.addNote(note)
-    assert mw is not None
-    mw.reset()
     tooltip(ngettext('{} card added.', '{} cards added.', n_newcards).format(n_newcards))
 
 
