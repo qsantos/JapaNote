@@ -1,7 +1,0 @@
-anki # Anki API
-aqt # Anki Qt API
-ruff # linting
-mypy # typing
-PyQt5-stubs
-PySide6-stubs
-pip-tools  # generate requirements.txt from requirements.in

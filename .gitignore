@@ -1,5 +1,4 @@
 *.pyc
 *_qt5.py
 *_qt6.py
-venv/
 japanote/meta.json
