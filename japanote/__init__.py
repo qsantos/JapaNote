@@ -62,9 +62,11 @@ def render(self: DeckBrowser, _old: Callable[[DeckBrowser], str]) -> str:
     }
     function quickAddWord() {
         edict.quickAdd(quickAddPattern.value);
+        quickAddPattern.value = "";
     }
     function quickAddNoun() {
         edict.quickAdd(quickAddPattern.value, true);
+        quickAddPattern.value = "";
     }
     const quickAddPattern = document.getElementById('quick-add-pattern');
     quickAddPattern.addEventListener('keypress', function(event) {
