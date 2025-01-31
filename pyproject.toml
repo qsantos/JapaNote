@@ -14,6 +14,7 @@ dependencies = [
 ]
 
 [tool.ruff]
+exclude = ["japanote/romkan.py"]
 lint.select = [
     "ARG",  # flake8-unused-arguments
     "B",  # flake8-bugbear
