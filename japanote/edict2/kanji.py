@@ -39,16 +39,22 @@ dakutens = {
 
 
 def normalize_reading(reading: str) -> str:
-    # strip okurigana
+    # strip okurigana (e.g. 'くぼ.む' → 'くぼ')
     reading = reading.split('.')[0] if '.' in reading else reading
-    # remove "-"
+    # remove prefix/suffix marker (e.g. 'もの-' → 'もの', '-かた' → 'かた')
     reading = reading.replace('-', '')
-    # convert to hiragana
+    # convert to hiragana (e.g. 'クボ' → 'くぼ')
     reading = katakana_to_hiragana(reading)
     # make ず and づ equivalent
     if reading.endswith('づ'):
         reading = reading[:-1] + 'ず'
     return reading
+
+
+assert normalize_reading('くぼ.む') == 'くぼ'
+assert normalize_reading('クボ.ム') == 'くぼ'
+assert normalize_reading('もの-') == 'もの'
+assert normalize_reading('-カタ') == 'かた'
 
 
 def normalize_readings(readings: set[str]) -> set[str]:
