@@ -71,8 +71,26 @@ def load_kanjidic(filename: str = default_kanjidic) -> dict[str, Kanji]:
     with open(filename, mode='rb') as f:
         edict_data = f.read().decode('euc_jp')
 
-    kanjidic = {}
+    # For instance, skipping many of the tags, the entry for 形 looks like this:
+    # 形 3741 U5f62 B59 Yxing2 Whyeong ケイ ギョウ かた -がた かたち なり T1 ち {shape} {form} {style}
+    # We find:
+    # - The character: 形
+    # - The JIS code: 3741
+    # - Various properties of the kanji, identified by a upper case letter prefix: U5f62 B59 Xxing2 Whyeong
+    # - The on (katakana) and kun readings (hirganaa): ケイ ギョウ かた -がた かたち なり
+    # - The nanori readings: T1 ち
+    # - The radical name would be preceded by the marker T2 (e.g. T2 おの)
+    # - The meanings: {shape} {form} {style}
     line_pattern = re.compile(r'(?m)^(.) (?:[0-9A-F]{4}) (?:(?:[A-Z]\S*) )*([^{]*?) (?:T[^{]*?)?((?:\{.*?\} )*\{.*?\})')
+    # (?m)^                  start of line
+    # (.)                    captures character
+    # [0-9A-F]{4}            skip JIS code
+    # (?:[A-Z]\S*)           skip properties
+    # ([^{]*?)               captures readings
+    # (?:T[^{]*?)?           skip nanori readings/radical name
+    # ((?:\{.*?\} )*\{.*?\}) captures meanings
+
+    kanjidic = {}
     meaning_pattern = re.compile(r'{(.*?)}')
     for character, readings, meanings in line_pattern.findall(edict_data):
         # gather kanji information
