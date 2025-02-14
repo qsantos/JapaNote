@@ -97,12 +97,22 @@ def furigana_from_match(match: list[tuple[str, str]]) -> str:
     return ''.join(_())
 
 
-assert furigana_from_kanji_kana('私', 'わたし') == '私[わたし]'
-assert furigana_from_kanji_kana('牛肉', 'ぎゅうにく') == '牛[ぎゅう]肉[にく]'
-assert furigana_from_kanji_kana('一二三四五六七八九十', 'いちにさんしごろくななはちきゅうじゅう') == '一[いち]二[に]三[さん]四[し]五[ご]六[ろく]七[なな]八[はち]九[きゅう]十[じゅう]'
-assert furigana_from_kanji_kana('等々', 'などなど') == '等[など]々[など]'
-assert furigana_from_kanji_kana('日帰り', 'ひがえり') == '日[ひ]帰[がえ]り'
-assert furigana_from_kanji_kana('判官', 'はんがん') == '判[はん]官[がん]'
-assert furigana_from_kanji_kana('贔屓', 'ひいき') == '贔[ひい]屓[き]'
-assert furigana_from_kanji_kana('判官贔屓', 'はんがんびいき') == '判[はん]官[がん]贔[びい]屓[き]'
-assert furigana_from_kanji_kana('メッタ刺し', 'めったざし') == 'メッタ 刺[ざ]し'
+def _test(kanji: str, kana: str, expected: str):
+    """Test furigana_from_kanji_kana() against expected result"""
+    furigana = furigana_from_kanji_kana(kanji, kana)
+    if furigana != expected:
+        print(f'ERROR: furigana_from_kanji_kana(repr({kanji}), repr({kana}) returns the wrong result')
+        print(f'Output:   {repr(furigana)}')
+        print(f'Expected: {repr(expected)}')
+        raise AssertionError
+
+
+_test('私', 'わたし', '私[わたし]')
+_test('牛肉', 'ぎゅうにく', '牛[ぎゅう]肉[にく]')
+_test('一二三四五六七八九十', 'いちにさんしごろくななはちきゅうじゅう', '一[いち]二[に]三[さん]四[し]五[ご]六[ろく]七[なな]八[はち]九[きゅう]十[じゅう]')
+_test('等々', 'などなど', '等[など]々[など]')
+_test('日帰り', 'ひがえり', '日[ひ]帰[がえ]り')
+_test('判官', 'はんがん', '判[はん]官[がん]')
+_test('贔屓', 'ひいき', '贔[ひい]屓[き]')
+_test('判官贔屓', 'はんがんびいき', '判[はん]官[がん]贔[びい]屓[き]')
+_test('メッタ刺し', 'めったざし', 'メッタ 刺[ざ]し')
