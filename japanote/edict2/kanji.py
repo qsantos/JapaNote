@@ -81,13 +81,13 @@ def load_kanjidic(filename: str = default_kanjidic) -> dict[str, Kanji]:
     # - The nanori readings: T1 ち
     # - The radical name would be preceded by the marker T2 (e.g. T2 おの)
     # - The meanings: {shape} {form} {style}
-    line_pattern = re.compile(r'(?m)^(.) (?:[0-9A-F]{4}) (?:(?:[A-Z]\S*) )*([^{]*?) (?:T[^{]*?)?((?:\{.*?\} )*\{.*?\})')
+    line_pattern = re.compile(r'(?m)^(.) (?:[0-9A-F]{4}) (?:(?:[A-Z]\S*) )*([^{]*?) (?:T2[^{]*?)?((?:\{.*?\} )*\{.*?\})')
     # (?m)^                  start of line
     # (.)                    captures character
     # [0-9A-F]{4}            skip JIS code
     # (?:[A-Z]\S*)           skip properties
     # ([^{]*?)               captures readings
-    # (?:T[^{]*?)?           skip nanori readings/radical name
+    # (?:T2[^{]*?)?          skip radical name
     # ((?:\{.*?\} )*\{.*?\}) captures meanings
 
     kanjidic = {}
@@ -95,7 +95,7 @@ def load_kanjidic(filename: str = default_kanjidic) -> dict[str, Kanji]:
     for character, readings, meanings in line_pattern.findall(edict_data):
         # gather kanji information
         meanings = meaning_pattern.findall(meanings)
-        readings = {normalize_reading(reading) for reading in readings.split()}
+        readings = {normalize_reading(reading) for reading in readings.split() if reading != 'T1'}
         readings |= compound_readings(readings)
         kanji = Kanji(character, readings, meanings)
 
