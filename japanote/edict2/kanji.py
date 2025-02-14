@@ -57,10 +57,6 @@ assert normalize_reading('もの-') == 'もの'
 assert normalize_reading('-カタ') == 'かた'
 
 
-def normalize_readings(readings: set[str]) -> set[str]:
-    return {normalize_reading(reading) for reading in readings}
-
-
 def compound_readings(readings: set[str]) -> set[str]:
     gemination = {reading[:-1] + 'っ' for reading in readings}
     rendaku = {
@@ -81,7 +77,7 @@ def load_kanjidic(filename: str = default_kanjidic) -> dict[str, Kanji]:
     for character, readings, meanings in line_pattern.findall(edict_data):
         # gather kanji information
         meanings = meaning_pattern.findall(meanings)
-        readings = normalize_readings(readings.split())
+        readings = {normalize_reading(reading) for reading in readings.split()}
         readings |= compound_readings(readings)
         kanji = Kanji(character, readings, meanings)
 
