@@ -38,20 +38,21 @@ dakutens = {
 }
 
 
-def normalize_readings(readings: set[str]) -> set[str]:
+def normalize_reading(reading: str) -> str:
     # strip okurigana
-    readings = {
-        reading.split('.')[0] if '.' in reading else reading
-        for reading in readings
-    }
+    reading = reading.split('.')[0] if '.' in reading else reading
     # remove "-"
-    readings = {reading.replace('-', '') for reading in readings}
+    reading = reading.replace('-', '')
     # convert to hiragana
-    readings = {katakana_to_hiragana(reading) for reading in readings}
-    # make ず and づ equivalent readings
-    if readings & {'ず', 'づ'}:
-        readings |= {'ず', 'づ'}
-    return readings
+    reading = katakana_to_hiragana(reading)
+    # make ず and づ equivalent
+    if reading.endswith('づ'):
+        reading = reading[:-1] + 'ず'
+    return reading
+
+
+def normalize_readings(readings: set[str]) -> set[str]:
+    return {normalize_reading(reading) for reading in readings}
 
 
 def compound_readings(readings: set[str]) -> set[str]:
