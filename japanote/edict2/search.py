@@ -52,7 +52,7 @@ class Word:
 
         # regroup meanings
         meanings = []
-        last_meaning = []
+        last_meaning: list[str] = []
         for gloss in glosses:
             match = gloss_pattern.match(gloss)
             assert match is not None
