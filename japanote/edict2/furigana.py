@@ -120,3 +120,8 @@ _test('判官贔屓', 'はんがんびいき', '判[はん]官[がん]贔[びい
 _test('メッタ刺し', 'めったざし', 'メッタ 刺[ざ]し')
 _test('文字', 'もじ', '文[も]字[じ]')
 _test('楔形文字', 'くさびがたもじ', '楔[くさび]形[がた]文[も]字[じ]')
+# With the rules above, the test below could also result in:
+# 人[ひと]を 呪[のろ]わ ば[ばあ] 穴[な]二[ふた]つ
+# The only thing that prevents this is deterministic ordering that makes it so
+# that lengthened readings have lower priority.
+_test('人を呪わば穴二つ', 'ひとをのろわばあなふたつ', '人[ひと]を 呪[のろ]わば 穴[あな]二[ふた]つ')
