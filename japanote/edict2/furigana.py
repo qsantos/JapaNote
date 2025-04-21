@@ -52,21 +52,23 @@ def match_from_kanji_kana(kanji: str, kana: str) -> Iterator[list[tuple[str, str
         # look up kanji readings
         c = kanji[0]
         if c == '々' and match_prefix:
-            readings = {match_prefix[-1][1]}  # TODO: dakuten
+            readings = [match_prefix[-1][1]]  # TODO: dakuten
         else:
             try:
                 kanjiinfo = kanjidic[c]
             except KeyError:
-                readings = {c}
+                readings = [c]
             else:
                 readings = kanjiinfo.readings
-        # last vowel lengthening
-        lengthened_readings = set()
+        # add lengthened readings (lower priority)
+        lengthened_readings = []
         for reading in readings:
             lengthened = lengthen_vowel(reading)
             if lengthened is not None:
-                lengthened_readings.add(lengthened)
-        readings |= lengthened_readings
+                lengthened_readings.append(lengthened)
+        readings.extend(lengthened_readings)
+        # remove duplicates while maintaining order
+        readings = list(dict.fromkeys(readings))
         # recurse
         for reading in readings:
             if hiragana_to_katakana(kana[0]) == reading or kana.startswith(reading):

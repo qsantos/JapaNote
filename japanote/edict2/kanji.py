@@ -5,7 +5,7 @@ default_kanjidic = os.path.join(os.path.dirname(__file__), 'kanjidic')
 
 
 class Kanji:
-    def __init__(self, character: str, readings: set[str], meanings: set[str]) -> None:
+    def __init__(self, character: str, readings: list[str], meanings: list[str]) -> None:
         self.character = character
         self.readings = readings
         self.meanings = meanings
@@ -95,8 +95,10 @@ def load_kanjidic(filename: str = default_kanjidic) -> dict[str, Kanji]:
     for character, readings, meanings in line_pattern.findall(edict_data):
         # gather kanji information
         meanings = meaning_pattern.findall(meanings)
-        readings = {normalize_reading(reading) for reading in readings.split() if reading != 'T1'}
-        readings |= compound_readings(readings)
+        readings = [normalize_reading(reading) for reading in readings.split() if reading != 'T1']
+        readings.extend(compound_readings(readings))
+        # remove duplicates while keeping order
+        readings = list(dict.fromkeys(readings))
         kanji = Kanji(character, readings, meanings)
 
         # map character to kanji
