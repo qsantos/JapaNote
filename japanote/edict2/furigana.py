@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Iterator, Optional
+from typing import Iterator, Optional, Deque
 
 from .kanji import load_kanjidic
 
@@ -41,7 +41,7 @@ def match_from_kanji_kana(kanji: str, kana: str) -> Iterator[list[tuple[str, str
         kanjidic = load_kanjidic()
 
     default = [(kanji, kana)]
-    q = deque([([], kanji, kana)])
+    q: Deque[tuple[list[tuple[str, str]], str, str]] = deque([([], kanji, kana)])
     while q:
         match_prefix, kanji, kana = q.popleft()
         # skip not-kanji
