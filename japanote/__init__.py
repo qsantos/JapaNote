@@ -79,7 +79,7 @@ def main() -> None:
     assert mw is not None
 
     # display quick add form
-    DeckBrowser._renderStats = wrap(DeckBrowser._renderStats, render, 'around')
+    DeckBrowser._renderStats = wrap(DeckBrowser._renderStats, render, 'around')  # type: ignore
 
     # add bridge to JavaScript's namespace
     web_page = mw.deckBrowser.web.page()
