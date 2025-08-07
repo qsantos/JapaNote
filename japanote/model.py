@@ -108,7 +108,11 @@ def add_notes(words: Iterable[Word]) -> None:
 
         # add card
         n_newcards += col.addNote(note)
-    tooltip(ngettext('{} card added.', '{} cards added.', n_newcards).format(n_newcards))
+
+    if n_newcards == 0:
+        showInfo('Note already exists')
+    else:
+        tooltip(ngettext('{} card added.', '{} cards added.', n_newcards).format(n_newcards))
 
 
 class WordSearchModel(QAbstractTableModel):
