@@ -61,12 +61,18 @@ def render(self: DeckBrowser, _old: Callable[[DeckBrowser], str]) -> str:
         })}, 100);
     }
     function quickAddWord() {
-        edict.quickAdd(quickAddPattern.value);
-        quickAddPattern.value = "";
+        edict.quickAdd(quickAddPattern.value).then(added => {
+            if (added) {
+                quickAddPattern.value = "";
+            }
+        });
     }
     function quickAddNoun() {
-        edict.quickAdd(quickAddPattern.value, true);
-        quickAddPattern.value = "";
+        edict.quickAdd(quickAddPattern.value, true).then(added => {
+            if (added) {
+                quickAddPattern.value = "";
+            }
+        });
     }
     const quickAddPattern = document.getElementById('quick-add-pattern');
     quickAddPattern.addEventListener('keypress', function(event) {
