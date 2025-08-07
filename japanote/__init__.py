@@ -16,23 +16,23 @@ T = TypeVar('T')
 
 
 class JavaScriptBridge(QObject):
-    @pyqtSlot(str)
-    @pyqtSlot(str, bool)
-    def quickAdd(self, pattern: str, is_proper_noun: bool = False) -> int:
+    @pyqtSlot(str, result=bool)
+    @pyqtSlot(str, bool, result=bool)
+    def quickAdd(self, pattern: str, is_proper_noun: bool = False) -> bool:
         pattern = pattern.strip()
         if not pattern:
-            return 0
+            return False
         word_search.is_proper_noun = is_proper_noun
         word_search.search(pattern)
         if not word_search.words:
             showInfo('No word found')
-            return 0
+            return False
         elif len(word_search.words) > 1:
             SearchWindow.open(pattern)
-            return 1
+            return True
         else:
             add_notes(word_search.words)
-            return 1
+            return True
 
     @pyqtSlot()
     def showSettings(self) -> None:
