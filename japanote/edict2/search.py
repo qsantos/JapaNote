@@ -2,6 +2,7 @@ import os.path
 import re
 from typing import Iterator, Optional
 
+from .. import romkan
 from .furigana import furigana_from_kanji_kana
 
 # default filenames
@@ -113,6 +114,8 @@ class Edict:
 
                 # map writings and reading to word
                 for key in writings + readings:
+                    # normalize kana
+                    key = romkan.to_hiragana(romkan.to_roma(key))
                     try:
                         entries = self.words[key]
                     except KeyError:
@@ -124,6 +127,8 @@ class Edict:
                             self.words[key] = [entries, word]
 
     def search(self, word: str) -> Iterator[Word]:
+        # normalize kana
+        word = romkan.to_hiragana(romkan.to_roma(word))
         self.load()
         try:
             entries = self.words[word]
