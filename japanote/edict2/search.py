@@ -90,8 +90,14 @@ class Word:
 
 class Edict:
     def __init__(self, filename: str = default_edict):
+        self.filename = filename
         self.words: dict[str, Word | list[Word]] = {}
-        with open(filename) as f:
+
+    def load(self):
+        if self.words:
+            return
+
+        with open(self.filename) as f:
             lines = iter(f)
             next(lines)  # skip header
             for line in lines:
@@ -118,6 +124,7 @@ class Edict:
                             self.words[key] = [entries, word]
 
     def search(self, word: str) -> Iterator[Word]:
+        self.load()
         try:
             entries = self.words[word]
         except KeyError:
