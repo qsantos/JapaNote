@@ -112,10 +112,11 @@ class Edict:
                 readings = common_marker.sub('', sreadings).split(';') if sreadings else []
                 word = Word(writings, readings, glosses, line)
 
-                # map writings and reading to word
-                for key in writings + readings:
-                    # normalize kana
-                    key = romkan.to_hiragana(romkan.to_roma(key))
+                # normalize keys (reading and writings)
+                keys = {romkan.to_hiragana(romkan.to_roma(key)) for key in writings + readings}
+
+                # map keys to words
+                for key in keys:
                     try:
                         entries = self.words[key]
                     except KeyError:
