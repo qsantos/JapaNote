@@ -16,7 +16,7 @@ import zipfile
 from collections.abc import Callable
 from typing import Any
 
-from .package import read_package
+from .package import apply_patch, read_package
 
 USER_FILES = os.path.join(os.path.dirname(__file__), 'user_files')
 USER_AGENT = 'JapaNote (https://github.com/qsantos/JapaNote)'
@@ -104,6 +104,66 @@ def install_database(  # noqa: PLR0913
         if os.path.exists(compressed):
             os.remove(compressed)
     return new
+
+
+def patch_chain(patches: list[dict[str, Any]], version: str, target: str) -> list[dict[str, Any]] | None:
+    """The patches that update a database from version to target, in order, if there are"""
+    by_origin = {patch['from']: patch for patch in patches}
+    chain = []
+    while version != target:
+        patch = by_origin.get(version)
+        if patch is None:
+            return None
+        chain.append(patch)
+        version = patch['to']
+    return chain
+
+
+def patch_database(
+    patches: list[dict[str, Any]],
+    path: str,
+    format_: int,
+    update_indexes: Callable[[str, dict[str, list[tuple[Any, ...]]]], None],
+) -> str:
+    """Apply patches to a copy of the database at path, and return the path of the copy (see install_database)"""
+    new = path + '.new'
+    downloaded = path + '.patch'
+    try:
+        shutil.copyfile(path, new)
+        for patch in patches:
+            download(patch['url'], downloaded, patch['sha256'])
+            update_indexes(new, apply_patch(downloaded, new))
+        check_database(new, format_)
+    except BaseException:
+        if os.path.exists(new):
+            os.remove(new)
+        raise
+    finally:
+        if os.path.exists(downloaded):
+            os.remove(downloaded)
+    return new
+
+
+def update_database(  # noqa: PLR0913
+    info: dict[str, Any],
+    path: str,
+    version: str,
+    target: str,
+    format_: int,
+    prepare: Callable[[str], None],
+    update_indexes: Callable[[str, dict[str, list[tuple[Any, ...]]]], None],
+) -> str:
+    """Update a database from version to target, with patches when they are smaller than the new package
+
+    Return the path of the new database (see install_database).
+    """
+    chain = patch_chain(info.get('patches', []), version, target)
+    if chain is not None and sum(patch['size'] for patch in chain) < info['size']:
+        try:
+            return patch_database(chain, path, format_, update_indexes)
+        except Exception as e:  # noqa: BLE001
+            print(f'JapaNote: could not patch {path}, downloading it again: {e}')
+    return install_database(info['url'], info['sha256'], path, format_, prepare)
 
 
 def install_wheel(url: str, sha256: str, directory: str, progress: Progress | None = None) -> None:

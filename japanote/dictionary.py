@@ -100,6 +100,25 @@ def create_indexes(path: str) -> None:
         db.close()
 
 
+def update_indexes(path: str, changes: dict[str, list[tuple[Any, ...]]]) -> None:
+    """Update the index of the entries that a patch changed (see package.apply_patch)"""
+    ids = [id_ for (id_,) in changes.get('entry', [])]
+    db = sqlite3.connect(path)
+    try:
+        # NOTE: the key table is not indexed by entry, so remove the keys of all the entries in one pass
+        db.execute('CREATE TEMPORARY TABLE changed (id INTEGER PRIMARY KEY)')
+        db.executemany('INSERT OR IGNORE INTO changed VALUES (?)', ((id_,) for id_ in ids))
+        db.execute('DELETE FROM key WHERE entry IN (SELECT id FROM changed)')
+        rows = db.execute('SELECT id, data FROM entry WHERE id IN (SELECT id FROM changed)').fetchall()
+        db.executemany(
+            'INSERT OR IGNORE INTO key VALUES (?, ?)',
+            ((key, id_) for id_, data in rows for key in entry_keys(json.loads(data))),
+        )
+        db.commit()
+    finally:
+        db.close()
+
+
 class Dictionary:
     def __init__(self, path: str, id_prefix: str, kanji_source: Dictionary | None = None) -> None:
         self.path = path

@@ -11,6 +11,9 @@ Some columns are encoded so that they compress better:
   of entries), with null for missing fields;
 - {'int16 rows': width}: matrices of 16-bit integers (other values are kept as is), each row as the
   differences with the previous one; the add-on reads them as little-endian (see analyzer.py).
+
+A patch, which updates a database from one version to the next, has the same format, but only lists
+the rows that were added or changed in each table, and the primary keys of those that were removed.
 """
 from __future__ import annotations
 
@@ -131,3 +134,93 @@ def read_package(path: str, db_path: str) -> None:
         db.commit()
     finally:
         db.close()
+
+
+class PatchError(Exception):
+    pass
+
+
+def _version(db: sqlite3.Connection) -> str:
+    row = db.execute("SELECT value FROM meta WHERE key = 'version'").fetchone()
+    return str(row[0]) if row else ''
+
+
+def _primary_key(db: sqlite3.Connection, table: str) -> list[str]:
+    columns = sorted((column[5], column[1]) for column in db.execute(f'PRAGMA table_info({table})') if column[5])
+    if not columns:
+        msg = f'table {table} has no primary key'
+        raise PatchError(msg)
+    return [name for _, name in columns]
+
+
+def _tables(db: sqlite3.Connection) -> dict[str, str]:
+    return dict(db.execute("SELECT name, sql FROM sqlite_schema WHERE type = 'table' ORDER BY rowid"))
+
+
+def write_patch(old_path: str, new_path: str, path: str, encodings: dict[str, dict[str, Any]]) -> None:
+    """Write the patch that turns the database at old_path into the one at new_path"""
+    old = sqlite3.connect(old_path)
+    new = sqlite3.connect(new_path)
+    try:
+        old_tables, new_tables = _tables(old), _tables(new)
+        if any(name in new_tables and new_tables[name] != sql for name, sql in old_tables.items()):
+            msg = 'the tables changed'
+            raise PatchError(msg)
+        header: dict[str, Any] = {'from': _version(old), 'to': _version(new), 'tables': []}
+        lines: list[str] = []
+        for name, sql in new_tables.items():
+            columns = [column[1] for column in new.execute(f'PRAGMA table_info({name})')]
+            key = _primary_key(new, name)
+            indexes = [columns.index(column) for column in key]
+            new_rows = {tuple(row[i] for i in indexes): row for row in new.execute(f'SELECT * FROM {name}')}
+            old_rows = (
+                {tuple(row[i] for i in indexes): row for row in old.execute(f'SELECT * FROM {name}')}
+                if name in old_tables else {}
+            )
+            removed = [list(k) for k in old_rows if k not in new_rows]
+            changed = [row for k, row in new_rows.items() if old_rows.get(k) != row]
+            table_encodings = encodings.get(name, {})
+            header['tables'].append({
+                'name': name, 'sql': sql, 'columns': columns, 'key': key, 'encodings': table_encodings,
+                'removed': removed,
+            })
+            for i, column in enumerate(columns):
+                lines.extend(encode([row[i] for row in changed], table_encodings.get(column)))
+        # tables that were removed are left as they are
+    finally:
+        old.close()
+        new.close()
+    with lzma.open(path, 'wt', encoding='utf-8', preset=9 | lzma.PRESET_EXTREME) as f:
+        for line in [_dumps(header), *lines]:
+            f.write(line + '\n')
+
+
+def apply_patch(path: str, db_path: str) -> dict[str, list[tuple[Any, ...]]]:
+    """Apply a patch to the database at db_path, and return the keys of the rows that changed, by table"""
+    changes: dict[str, list[tuple[Any, ...]]] = {}
+    db = sqlite3.connect(db_path)
+    try:
+        with lzma.open(path, 'rt', encoding='utf-8') as lines:
+            header = json.loads(lines.readline())
+            version = _version(db)
+            if version != header['from']:
+                msg = f'the patch is for version {header["from"]}, not {version}'
+                raise PatchError(msg)
+            for table in header['tables']:
+                name, columns, key = table['name'], table['columns'], table['key']
+                db.execute(table['sql'].replace('CREATE TABLE', 'CREATE TABLE IF NOT EXISTS', 1))
+                rows = list(zip(*(decode(lines, table['encodings'].get(column)) for column in columns)))
+                removed = [tuple(k) for k in table['removed']]
+                where = ' AND '.join(f'{column} = ?' for column in key)
+                db.executemany(f'DELETE FROM {name} WHERE {where}', removed)
+                placeholders = ', '.join('?' * len(columns))
+                db.executemany(f'INSERT OR REPLACE INTO {name} VALUES ({placeholders})', rows)
+                indexes = [columns.index(column) for column in key]
+                changes[name] = removed + [tuple(row[i] for i in indexes) for row in rows]
+            if _version(db) != header['to']:
+                msg = f'the patch did not update the version to {header["to"]}'
+                raise PatchError(msg)
+        db.commit()
+    finally:
+        db.close()
+    return changes

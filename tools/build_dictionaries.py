@@ -14,7 +14,7 @@ Two databases are built, both with only the furigana that the add-on would not g
 
 Usage:
     build_dictionaries.py download SOURCES_DIR
-    build_dictionaries.py build SOURCES_DIR OUTPUT_DIR BASE_URL
+    build_dictionaries.py build SOURCES_DIR OUTPUT_DIR BASE_URL  (with patches from the build published at BASE_URL)
     build_dictionaries.py install OUTPUT_DIR DB_DIR  (build and index the databases, as the add-on does)
 """
 from __future__ import annotations
@@ -43,6 +43,8 @@ if TYPE_CHECKING:
 
 # NOTE: must match FORMAT in japanote/dictionary.py
 FORMAT = 2
+# patches kept in the manifest, to update from older versions (a few months, with weekly builds)
+MAX_PATCHES = 12
 
 EDRDG = 'http://ftp.edrdg.org/pub/Nihongo'
 FURIGANA = 'https://github.com/Doublevil/JmdictFurigana/releases/latest/download'
@@ -406,9 +408,76 @@ def sha256sum(path: str) -> str:
     return digest.hexdigest()
 
 
+def fetch_previous(base_url: str) -> dict[str, Any] | None:
+    """The manifest of the previous build, if it was published in the same format"""
+    url = f'{base_url}/manifest-v{FORMAT}.json'
+    try:
+        with urllib.request.urlopen(url, timeout=300) as response:
+            manifest: dict[str, Any] = json.load(response)
+    except Exception as e:  # noqa: BLE001
+        print(f'No previous build ({url}: {e}), so no patches')
+        return None
+    return manifest
+
+
+def meta_version(path: str) -> str:
+    db = sqlite3.connect(path)
+    try:
+        return str(db.execute("SELECT value FROM meta WHERE key = 'version'").fetchone()[0])
+    finally:
+        db.close()
+
+
+def make_patch(
+    previous: dict[str, Any],
+    path: str,
+    output_dir: str,
+    base_url: str,
+    encodings: dict[str, dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Write the patch from the previous package to the database at path, and return its description"""
+    package = load_module('package')
+    name = os.path.basename(path).split('-')[0]
+    old_package = os.path.join(output_dir, f'previous-{name}.xz')
+    old_path = os.path.join(output_dir, f'previous-{name}.sqlite')
+    try:
+        with urllib.request.urlopen(previous['url'], timeout=300) as response, open(old_package, 'wb') as f:
+            shutil.copyfileobj(response, f)
+        if sha256sum(old_package) != previous['sha256']:
+            print(f'  unexpected checksum for {previous["url"]}, so no patch')
+            return None
+        package.read_package(old_package, old_path)
+        old_version, version = meta_version(old_path), meta_version(path)
+        patched = os.path.join(output_dir, f'{name}-v{FORMAT}-{old_version}-{version}.xz')
+        try:
+            package.write_patch(old_path, path, patched, encodings)
+        except package.PatchError as e:
+            print(f'  no patch: {e}')
+            return None
+    finally:
+        for temporary in (old_package, old_path):
+            if os.path.exists(temporary):
+                os.remove(temporary)
+    size = os.path.getsize(patched)
+    print(f'  {patched}: {size / 2**20:.2f} MiB')
+    return {
+        'from': old_version,
+        'to': version,
+        'url': f'{base_url}/{os.path.basename(patched)}',
+        'size': size,
+        'sha256': sha256sum(patched),
+    }
+
+
 def build(sources_dir: str, output_dir: str, base_url: str) -> None:
+    """Build the packages, and the patches from the previous ones, if they were published at base_url"""
     os.makedirs(output_dir, exist_ok=True)
-    version = datetime.now(timezone.utc).strftime('%Y%m%d')
+    # with the time, so that two builds on the same day are different versions
+    version = datetime.now(timezone.utc).strftime('%Y%m%d%H%M')
+    previous = fetch_previous(base_url)
+    # the files of the release that are still needed: those of this build, and those of the previous one,
+    # for the clients that are downloading them right now
+    assets = set()
 
     def source(filename: str) -> str:
         return os.path.join(sources_dir, filename)
@@ -434,17 +503,31 @@ def build(sources_dir: str, output_dir: str, base_url: str) -> None:
         build_database(path, source(entries), source(furigana), tables, version, keep_entry, differ)
         packaged = os.path.join(output_dir, f'{name}-v{FORMAT}-{version}.xz')
         package.write_package(path, packaged, encodings(dict(analyzer)['size']))
-        os.remove(path)
         size = os.path.getsize(packaged)
+        print(f'  {packaged}: {size / 2**20:.1f} MiB')
+        patches = []
+        if previous is not None and name in previous['dictionaries'] and previous['version'] != version:
+            old = previous['dictionaries'][name]
+            assets.add(os.path.basename(old['url']))
+            patch = make_patch(old, path, output_dir, base_url, encodings(dict(analyzer)['size']))
+            if patch is not None:
+                # the previous patches lead to the previous version, so they can be chained with this one
+                patches = [*old.get('patches', [])[-(MAX_PATCHES - 1):], patch]
+        os.remove(path)
         manifest['dictionaries'][name] = {
             'url': f'{base_url}/{os.path.basename(packaged)}',
             'size': size,
             'sha256': sha256sum(packaged),
+            'patches': patches,
         }
-        print(f'  {packaged}: {size / 2**20:.1f} MiB')
+        assets.add(os.path.basename(packaged))
+        assets.update(os.path.basename(patch['url']) for patch in patches)
 
     with open(os.path.join(output_dir, f'manifest-v{FORMAT}.json'), 'w') as f:
         json.dump(manifest, f, indent=4)
+    assets.add(f'manifest-v{FORMAT}.json')
+    with open(os.path.join(output_dir, 'assets.txt'), 'w') as f:
+        f.writelines(f'{asset}\n' for asset in sorted(assets))
 
 
 def install(output_dir: str, db_dir: str) -> None:
@@ -453,7 +536,8 @@ def install(output_dir: str, db_dir: str) -> None:
     package = load_module('package')
     os.makedirs(db_dir, exist_ok=True)
     for filename in os.listdir(output_dir):
-        if f'-v{FORMAT}-' not in filename or not filename.endswith('.xz'):
+        # e.g. jmdict-v2-202610201234.xz, but not the patches, e.g. jmdict-v2-202610131234-202610201234.xz
+        if not re.fullmatch(rf'\w+-v{FORMAT}-[0-9]+\.xz', filename):
             continue
         path = os.path.join(db_dir, filename.split('-')[0] + '.sqlite')
         if os.path.exists(path):

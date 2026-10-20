@@ -4,7 +4,9 @@ import sqlite3
 from array import array
 from typing import TYPE_CHECKING, Any
 
-from japanote.package import read_package, write_package
+import pytest
+
+from japanote.package import PatchError, apply_patch, read_package, write_package, write_patch
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -15,7 +17,7 @@ ENCODINGS: dict[str, dict[str, Any]] = {
 }
 
 
-def make_database(path: Path, version: str, entries: dict[int, str]) -> str:
+def make_database(path: Path, version: str, entries: dict[int, str], extra_table: bool = False) -> str:
     db = sqlite3.connect(path)
     db.executescript("""
         CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT) WITHOUT ROWID;
@@ -26,6 +28,9 @@ def make_database(path: Path, version: str, entries: dict[int, str]) -> str:
     db.executemany('INSERT INTO entry VALUES (?, 1, ?)', entries.items())
     matrix = array('h', [1, -2, 3, 400, 5, -600, 7, 8, 32767])
     db.executemany('INSERT INTO analyzer VALUES (?, ?)', [('size', 3), ('connections', matrix.tobytes())])
+    if extra_table:
+        db.execute('CREATE TABLE pitch (text TEXT NOT NULL, accents TEXT, PRIMARY KEY (text)) WITHOUT ROWID')
+        db.execute("INSERT INTO pitch VALUES ('はし', '1')")
     db.commit()
     db.close()
     return str(path)
@@ -39,15 +44,35 @@ def dump(path: str) -> dict[str, list[tuple[object, ...]]]:
     return content
 
 
-ENTRIES = {
+OLD = {
     1000: '{"k":[{"t":"猫"}],"r":[{"t":"ねこ"}],"s":[{"g":["cat"]}]}',
     1005: '{"r":[{"t":"ああ"}],"s":[{"g":["ah"]}]}',
+    1010: '{"k":[{"t":"犬"}],"r":[{"t":"いぬ"}],"s":[{"g":["dog"]}]}',
+}
+NEW = {
+    # 1005 removed, 1010 changed, 1020 added
+    1000: OLD[1000],
+    1010: '{"k":[{"t":"犬"}],"r":[{"t":"いぬ"}],"s":[{"g":["dog","hound"]}]}',
+    1020: '{"k":[{"t":"鳥"}],"r":[{"t":"とり"}],"s":[{"g":["bird"]}]}',
 }
 
 
 def test_package(tmp_path: Path) -> None:
-    # NOTE: the rows of the matrix differ by more than 16 bits
-    original = make_database(tmp_path / 'original.sqlite', '1', ENTRIES)
+    original = make_database(tmp_path / 'original.sqlite', '1', OLD)
     write_package(original, str(tmp_path / 'package.xz'), ENCODINGS)
     read_package(str(tmp_path / 'package.xz'), str(tmp_path / 'copy.sqlite'))
     assert dump(str(tmp_path / 'copy.sqlite')) == dump(original)
+
+
+def test_patch(tmp_path: Path) -> None:
+    old = make_database(tmp_path / 'old.sqlite', '1', OLD)
+    new = make_database(tmp_path / 'new.sqlite', '2', NEW, extra_table=True)
+    write_patch(old, new, str(tmp_path / 'patch.xz'), ENCODINGS)
+    changes = apply_patch(str(tmp_path / 'patch.xz'), old)
+    assert dump(old) == dump(new)
+    assert sorted(changes['entry']) == [(1005,), (1010,), (1020,)]
+    assert changes['analyzer'] == []
+
+    # it only applies to the version it was made from
+    with pytest.raises(PatchError):
+        apply_patch(str(tmp_path / 'patch.xz'), old)

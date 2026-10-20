@@ -17,8 +17,8 @@ from aqt import mw
 from aqt.utils import tooltip
 
 from .deinflect import Deinflector
-from .dictionary import FORMAT, Dictionary, create_indexes
-from .download import fetch_json, install_database, user_file
+from .dictionary import FORMAT, Dictionary, create_indexes, update_indexes
+from .download import fetch_json, install_database, update_database, user_file
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -163,7 +163,9 @@ def check_for_updates() -> None:
             info = manifest['dictionaries'][name]
             try:
                 path = DICTIONARIES[name].path
-                updated[name] = install_database(info['url'], info['sha256'], path, FORMAT, create_indexes)
+                updated[name] = update_database(
+                    info, path, version, manifest['version'], FORMAT, create_indexes, update_indexes,
+                )
             except Exception as e:  # noqa: BLE001
                 # keep the other updates; this one will be tried again on next start
                 print(f'JapaNote: could not update {name}: {e}')
@@ -194,7 +196,7 @@ def check_for_updates() -> None:
 def clean_up() -> None:
     """Remove files left by interrupted downloads, and by previous versions"""
     for dictionary in DICTIONARIES.values():
-        for suffix in ('.new', '.xz', '.xz.part'):
+        for suffix in ('.new', '.xz', '.xz.part', '.patch', '.patch.part'):
             path = dictionary.path + suffix
             if os.path.exists(path):
                 os.remove(path)

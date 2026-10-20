@@ -54,18 +54,13 @@ jobs:
               --notes 'Dictionaries downloaded by the add-on; updated every week. See README.md for credits.'
           fi
           format=$(basename dist/manifest-v*.json | grep -oE '[0-9]+')
-          # upload the packages before the manifest that points to them
+          # upload the packages and patches before the manifest that points to them
           gh release upload dictionaries dist/*-v$format-*.xz --clobber
           gh release upload dictionaries dist/manifest-v$format.json --clobber
-          # keep the previous build, for clients that are downloading it right now, and remove the others,
-          # including those of previous formats, which the add-on no longer reads
-          assets=$(gh release view dictionaries --json assets --jq '.assets[].name')
-          keep=$(echo "$assets" | grep -E -- "-v$format-[0-9]{8}\\." | grep -oE '[0-9]{8}' | sort -u | tail -n 2)
-          for asset in $assets; do
-            date=$(echo "$asset" | grep -oE '[0-9]{8}' || true)
-            if [[ "$asset" == manifest-v$format.json ]]; then
-              continue
-            elif [[ "$asset" != *-v$format-* ]] || ! echo "$keep" | grep -qx "$date"; then
+          # remove the files that are no longer needed (see assets.txt in build_dictionaries.py), including
+          # those of previous formats, which the add-on no longer reads
+          for asset in $(gh release view dictionaries --json assets --jq '.assets[].name'); do
+            if ! grep -qxF "$asset" dist/assets.txt; then
               gh release delete-asset dictionaries "$asset" --yes
             fi
           done

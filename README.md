@@ -25,6 +25,9 @@ The dictionaries are built every week by [a workflow](.github/workflows/dictiona
 (see [japanote/package.py](japanote/package.py)). Once downloaded, each one is turned into an SQLite database, so
 nothing is parsed when Anki starts.
 
+To update the dictionaries, the add-on downloads patches, which only list the entries that changed since the version
+that is installed, as long as they are smaller than the new version (e.g. about 50 KB for a thousand changed entries).
+
 ## Cards in different decks
 
 Each card type of a note type can go to its own deck (e.g. spelling cards in a separate deck): set it in the settings
