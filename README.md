@@ -35,7 +35,7 @@ of JapaNote, or as the Deck Override of the card type in Anki.
 # build the dictionaries locally (about a minute)
 python3 tools/build_dictionaries.py download sources
 python3 tools/build_dictionaries.py build sources dist http://127.0.0.1:8000
-mkdir db && for name in jmdict names; do gunzip -c dist/$name-*.sqlite.gz > db/$name.sqlite; done
+mkdir db && for name in jmdict names; do xz -dc dist/$name-*.sqlite.xz > db/$name.sqlite; done
 
 # run the tests
 JAPANOTE_DB_DIR=db uv run pytest

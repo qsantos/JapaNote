@@ -6,9 +6,9 @@ interrupted download never leaves a broken file behind.
 """
 from __future__ import annotations
 
-import gzip
 import hashlib
 import json
+import lzma
 import os
 import shutil
 import sqlite3
@@ -74,15 +74,15 @@ def check_database(path: str, format_: int) -> None:
 
 
 def install_database(url: str, sha256: str, path: str, format_: int, progress: Progress | None = None) -> str:
-    """Download a gzipped SQLite database, and return the path of the checked, uncompressed file
+    """Download an SQLite database compressed with xz, and return the path of the checked, uncompressed file
 
     The caller must move the returned file to path, once the previous database is closed.
     """
-    compressed = path + '.gz'
+    compressed = path + '.xz'
     new = path + '.new'
     try:
         download(url, compressed, sha256, progress)
-        with gzip.open(compressed, 'rb') as src, open(new, 'wb') as dst:
+        with lzma.open(compressed, 'rb') as src, open(new, 'wb') as dst:
             shutil.copyfileobj(src, dst)
         check_database(new, format_)
     except BaseException:

@@ -22,6 +22,7 @@ import gzip
 import hashlib
 import importlib
 import json
+import lzma
 import os
 import re
 import shutil
@@ -306,9 +307,10 @@ def build_database(  # noqa: PLR0913
 
 
 def compress(path: str) -> tuple[str, int, str]:
-    """Compress path with gzip, and return the new path, its size and its SHA-256"""
-    compressed = path + '.gz'
-    with open(path, 'rb') as src, gzip.open(compressed, 'wb', compresslevel=9) as dst:
+    """Compress path with xz, and return the new path, its size and its SHA-256"""
+    # xz makes the databases a third smaller than gzip, and Python can decompress it (lzma)
+    compressed = path + '.xz'
+    with open(path, 'rb') as src, lzma.open(compressed, 'wb', preset=9 | lzma.PRESET_EXTREME) as dst:
         shutil.copyfileobj(src, dst)
     digest = hashlib.sha256()
     with open(compressed, 'rb') as f:

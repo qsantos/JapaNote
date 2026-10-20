@@ -204,7 +204,7 @@ def check_for_updates() -> None:
 def clean_up() -> None:
     """Remove files left by interrupted downloads"""
     for dictionary in DICTIONARIES.values():
-        for suffix in ('.new', '.gz', '.gz.part'):
+        for suffix in ('.new', '.xz', '.xz.part'):
             path = dictionary.path + suffix
             if os.path.exists(path):
                 os.remove(path)

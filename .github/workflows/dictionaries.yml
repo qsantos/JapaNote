@@ -42,7 +42,7 @@ jobs:
         run: |
           pip install pytest
           mkdir db
-          for name in jmdict names; do gunzip -c dist/$name-*.sqlite.gz > db/$name.sqlite; done
+          for name in jmdict names; do xz -dc dist/$name-*.sqlite.xz > db/$name.sqlite; done
           JAPANOTE_DB_DIR=db python -m pytest tests
 
       - name: Publish
@@ -55,14 +55,15 @@ jobs:
               --notes 'Dictionaries downloaded by the add-on; updated every week. See README.md for credits.'
           fi
           # upload the databases before the manifest that points to them
-          gh release upload dictionaries dist/*.sqlite.gz --clobber
+          gh release upload dictionaries dist/*.sqlite.xz --clobber
           gh release upload dictionaries dist/manifest-v*.json --clobber
           # keep the previous build, for clients that are downloading it right now
-          assets=$(gh release view dictionaries --json assets --jq '.assets[].name' | grep -E '\.sqlite\.gz$')
-          keep=$(echo "$assets" | grep -oE '[0-9]{8}' | sort -u | tail -n 2)
+          assets=$(gh release view dictionaries --json assets --jq '.assets[].name' | grep -E '\.sqlite\.')
+          keep=$(echo "$assets" | grep -E '\.xz$' | grep -oE '[0-9]{8}' | sort -u | tail -n 2)
           for asset in $assets; do
             date=$(echo "$asset" | grep -oE '[0-9]{8}')
-            if ! echo "$keep" | grep -qx "$date"; then
+            # also remove the builds compressed with gzip, which the add-on no longer reads
+            if [[ "$asset" != *.xz ]] || ! echo "$keep" | grep -qx "$date"; then
               gh release delete-asset dictionaries "$asset" --yes
             fi
           done
