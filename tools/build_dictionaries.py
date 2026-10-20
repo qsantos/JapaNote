@@ -115,7 +115,8 @@ def download(sources_dir: str) -> None:
     for filename, url in SOURCES.items():
         print(f'Downloading {url}')
         path = os.path.join(sources_dir, filename)
-        with urllib.request.urlopen(url) as response, open(path + '.part', 'wb') as f:
+        # NOTE: without a timeout, a stalled server would block the workflow for hours
+        with urllib.request.urlopen(url, timeout=300) as response, open(path + '.part', 'wb') as f:
             shutil.copyfileobj(response, f)
         os.replace(path + '.part', path)
 
