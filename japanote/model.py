@@ -1,17 +1,21 @@
+from __future__ import annotations
+
 from gettext import ngettext
-from typing import Iterable, Optional
+from typing import TYPE_CHECKING, Any
 
 from anki.collection import SearchNode
 from anki.models import NotetypeDict
 from anki.notes import Note
-from aqt.qt import QAbstractTableModel, Qt
+from aqt.qt import QAbstractTableModel, QModelIndex, Qt
 from aqt.utils import showInfo, tooltip
 
 from . import resources
 from .collection import get_collection
 from .dictionary import Word, search_words
-from .qt import QtCore
 from .settingswindow import SettingsWindow
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 def check_field(model: NotetypeDict, config_key: str) -> bool:
@@ -126,69 +130,53 @@ def add_notes(words: Iterable[Word]) -> None:
 
 
 class WordSearchModel(QAbstractTableModel):
-    def __init__(self) -> None:
+    COLUMNS = ('Kanji', 'Kana', 'Furigana', 'JMdict ID', 'Definition')
+
+    def __init__(self, names: bool = False) -> None:
         QAbstractTableModel.__init__(self)
         self.words: list[Word] = []
-        self.is_proper_noun = False
+        self.names = names
 
-    def rowCount(self, parent: QtCore.QModelIndex = ...) -> int:
+    def rowCount(self, parent: QModelIndex | None = None) -> int:  # noqa: ARG002
         return len(self.words)
 
-    def columnCount(self, parent: QtCore.QModelIndex = ...) -> int:
-        return 5
+    def columnCount(self, parent: QModelIndex | None = None) -> int:  # noqa: ARG002
+        return len(self.COLUMNS)
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole) -> str:
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
         if orientation != Qt.Orientation.Horizontal or role != Qt.ItemDataRole.DisplayRole:
-            return QAbstractTableModel.headerData(self, section, orientation, role)  # type: ignore
-        return [
-            'Kanji',
-            'Kana',
-            'Template',
-            'JMDict ID',
-            'Definition',
-        ][section]
+            return QAbstractTableModel.headerData(self, section, orientation, role)
+        return self.COLUMNS[section]
 
-    def data(self, index: QtCore.QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Optional[str]:
-        if not index.isValid():
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
+        if not index.isValid() or role != Qt.ItemDataRole.DisplayRole:
             return None
-        if role == Qt.ItemDataRole.DisplayRole:
-            row: int = index.row()
-            word = self.words[row]
-            column = index.column()
-            if column == 0:
-                return word.kanji
-            elif column == 1:
-                return word.kana
-            elif column == 2:
-                return word.furigana
-            elif column == 3:
-                return word.id
-            elif column == 4:
-                return '\n'.join(word.meanings)
-            else:
-                raise NotImplementedError
-        else:
-            return None
+        word = self.words[index.row()]
+        return (
+            word.kanji,
+            word.kana,
+            word.furigana,
+            word.id,
+            '\n'.join(word.meanings),
+        )[index.column()]
 
-    def sort(self, column: int, order: Qt.SortOrder = QtCore.Qt.SortOrder.DescendingOrder) -> None:
-        reverse = order == QtCore.Qt.SortOrder.DescendingOrder
-        if column == 0:
-            key = lambda word: word.kanji
-        elif column == 1:
-            key = lambda word: word.kana
-        else:
+    def sort(self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:
+        if column not in (0, 1):
             return
-        self.modelAboutToBeReset.emit()
-        self.words = sorted(self.words, key=key, reverse=reverse)
-        self.modelReset.emit()
+        self.beginResetModel()
+        self.words.sort(
+            key=lambda word: word.kanji if column == 0 else word.kana,
+            reverse=order == Qt.SortOrder.DescendingOrder,
+        )
+        self.endResetModel()
 
-    def search(self, word: str) -> None:
-        self.modelAboutToBeReset.emit()
-        if self.is_proper_noun:
-            self.words = search_words(resources.names, word)
-        else:
-            self.words = search_words(resources.jmdict, word, resources.deinflector)
-        self.modelReset.emit()
+    def search(self, text: str) -> None:
+        self.beginResetModel()
+        self.words = search(text, self.names)
+        self.endResetModel()
 
 
-word_search = WordSearchModel()
+def search(text: str, names: bool) -> list[Word]:
+    if names:
+        return search_words(resources.names, text)
+    return search_words(resources.jmdict, text, resources.deinflector)

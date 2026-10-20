@@ -1,115 +1,123 @@
-from typing import Callable
+from __future__ import annotations
 
-from aqt import mw
-from aqt.qt import QComboBox, QDialog, Qt
+from typing import Any
+
+from aqt.qt import QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from .collection import get_collection
-from .qt import QtGui, settingswindow
-from .view import set_combobox_from_config, window_to_front
+from .view import window_to_front
+
+# configuration key → label, example
+FIELDS = {
+    'japanote_kanjiField': ('Put kanji in', '暗記'),
+    'japanote_kanaField': ('Put kana in', 'あんき'),
+    'japanote_furiganaField': ('Put furigana in', '暗[あん]記[き]'),
+    'japanote_definitionField': ('Put definition in', 'memorization'),
+    'japanote_idField': ('Put JMdict ID in', 'EntL1586910'),
+}
 
 
 class SettingsWindow(QDialog):
-    instance = None
+    instance: SettingsWindow | None = None
 
     @classmethod
     def open(cls) -> None:
         if cls.instance is None:
             cls.instance = cls()
+            cls.instance.show()
         else:
             window_to_front(cls.instance)
 
-    def closeEvent(self, evt: QtGui.QCloseEvent) -> None:
-        type(self).instance = None
-        self.hide()
-        evt.accept()
-
     def __init__(self) -> None:
         QDialog.__init__(self)
-        self.form = settingswindow.Ui_japaNoteSettings()
-        self.form.setupUi(self)  # type: ignore[no-untyped-call]
-
+        self.setWindowTitle('JapaNote settings')
         col = get_collection()
-
         col.conf['japanote_hasopensettings'] = True
 
         deck_names = sorted(deck.name for deck in col.decks.all_names_and_ids())
         model_names = sorted(model.name for model in col.models.all_names_and_ids())
 
-        self.form.deckBox.addItems(deck_names)
-        self.form.modelBox.addItems(model_names)
-        self.form.closeButton.clicked.connect(self.close)
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel('How new notes should be created:'))
+        form = QFormLayout()
+        layout.addLayout(form)
 
-        # restore state from configuration
-        # deck
-        set_combobox_from_config(self.form.deckBox, deck_names, 'japanote_deck')
-        # model
-        set_combobox_from_config(self.form.modelBox, model_names, 'japanote_model')
-        self.update_fieldboxes()  # fill combo boxes for selected model
-        self.update_warning()
-        # field mapping
-        model_name = col.conf.setdefault('japanote_model', model_names[0])
-        model = col.models.by_name(model_name)
-        if model:
-            field_names = [''] + [field['name'] for field in model['flds']]
-            set_combobox_from_config(self.form.kanjiBox, field_names, 'japanote_kanjiField')
-            set_combobox_from_config(self.form.kanaBox, field_names, 'japanote_kanaField')
-            set_combobox_from_config(self.form.furiganaBox, field_names, 'japanote_furiganaField')
-            set_combobox_from_config(self.form.definitionBox, field_names, 'japanote_definitionField')
-            set_combobox_from_config(self.form.idBox, field_names, 'japanote_idField')
+        self.deck_box = self.combobox(deck_names, col.conf.get('japanote_deck') or '')
+        self.deck_box.currentTextChanged.connect(self.on_change_deck)
+        form.addRow('Deck', self.deck_box)
 
-        # events
-        self.set_onChange_combobox(self.form.deckBox, 'japanote_deck')
-        self.form.modelBox.currentIndexChanged.connect(self.onChangeModel)
-        self.set_onChange_combobox(self.form.kanjiBox, 'japanote_kanjiField')
-        self.set_onChange_combobox(self.form.kanaBox, 'japanote_kanaField')
-        self.set_onChange_combobox(self.form.furiganaBox, 'japanote_furiganaField')
-        self.set_onChange_combobox(self.form.definitionBox, 'japanote_definitionField')
-        self.set_onChange_combobox(self.form.idBox, 'japanote_idField')
+        self.model_box = self.combobox(model_names, col.conf.get('japanote_model') or '')
+        self.model_box.currentTextChanged.connect(self.on_change_model)
+        form.addRow('Note type', self.model_box)
 
-        self.show()
+        self.field_boxes: dict[str, QComboBox] = {}
+        for key, (label, example) in FIELDS.items():
+            box = QComboBox()
+            box.currentTextChanged.connect(lambda text, key=key: self.on_change_field(key, text))
+            self.field_boxes[key] = box
+            form.addRow(label, self.with_example(box, example))
 
-    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
-        if event.key() == Qt.Key.Key_Escape:
-            self.close()
+        self.no_id_warning = QLabel(
+            'We advise you to save the JMdict ID in a field, so that duplicates are detected, '
+            'and notes can be updated later.',
+        )
+        self.no_id_warning.setWordWrap(True)
+        self.no_id_warning.setStyleSheet('color: #c00')
+        layout.addWidget(self.no_id_warning)
 
-    def set_onChange_combobox(self, combobox: QComboBox, config_key: str) -> None:
-        def _(combobox: QComboBox) -> Callable[[], None]:
-            def onChange() -> None:
-                col = get_collection()
-                col.conf[config_key] = combobox.currentText()
-                self.update_warning()
-            return onChange
-        combobox.currentIndexChanged.connect(_(combobox))
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.rejected.connect(self.close)
+        layout.addWidget(buttons)
 
-    def onChangeModel(self) -> None:
+        # save the selected deck and note type, when they were not set yet
+        self.on_change_deck(self.deck_box.currentText())
+        self.on_change_model(self.model_box.currentText())
+
+    def combobox(self, items: list[str], current: str) -> QComboBox:
+        box = QComboBox()
+        box.addItems(items)
+        if current in items:
+            box.setCurrentIndex(items.index(current))
+        return box
+
+    def with_example(self, widget: QWidget, example: str) -> QWidget:
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        label = QLabel(f'e.g. {example}')
+        label.setStyleSheet('color: gray')
+        layout.addWidget(widget, 1)
+        layout.addWidget(label)
+        return container
+
+    def on_change_deck(self, text: str) -> None:
+        get_collection().conf['japanote_deck'] = text
+
+    def on_change_model(self, model_name: str) -> None:
         col = get_collection()
-        col.conf['japanote_model'] = self.form.modelBox.currentText()
-        self.update_fieldboxes()
+        col.conf['japanote_model'] = model_name
+        model = col.models.by_name(model_name)
+        field_names = [''] + ([field['name'] for field in model['flds']] if model else [])
+        for key, box in self.field_boxes.items():
+            current = col.conf.get(key) or ''
+            box.blockSignals(True)
+            box.clear()
+            box.addItems(field_names)
+            box.setCurrentIndex(field_names.index(current) if current in field_names else 0)
+            box.blockSignals(False)
+            col.conf[key] = box.currentText()
         self.update_warning()
 
-    def update_fieldboxes(self) -> None:
-        col = get_collection()
-        model_name = col.conf['japanote_model']
-        model = col.models.by_name(model_name)
-        if not model:
-            return
-        field_names = [''] + [field['name'] for field in model['flds']]
-
-        self.form.kanjiBox.clear()
-        self.form.kanaBox.clear()
-        self.form.furiganaBox.clear()
-        self.form.definitionBox.clear()
-        self.form.idBox.clear()
-
-        self.form.kanjiBox.addItems(field_names)
-        self.form.kanaBox.addItems(field_names)
-        self.form.furiganaBox.addItems(field_names)
-        self.form.definitionBox.addItems(field_names)
-        self.form.idBox.addItems(field_names)
+    def on_change_field(self, key: str, text: str) -> None:
+        get_collection().conf[key] = text
+        self.update_warning()
 
     def update_warning(self) -> None:
-        col = get_collection()
-        if col.conf.get('japanote_idField'):
-            self.form.noidWarning.hide()
-        else:
-            self.form.noidWarning.show()
+        self.no_id_warning.setVisible(not get_collection().conf.get('japanote_idField'))
+
+    def reject(self) -> None:
+        self.close()
+
+    def closeEvent(self, event: Any) -> None:
+        type(self).instance = None
+        event.accept()

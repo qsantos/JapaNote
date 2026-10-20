@@ -1,71 +1,98 @@
-from typing import Optional
+from __future__ import annotations
 
-from aqt import mw
-from aqt.qt import QMainWindow, Qt
+from typing import Any
 
-from .collection import get_collection
-from .model import add_notes, word_search
-from .qt import QtGui, searchwindow
+from aqt.qt import (
+    QAbstractItemView,
+    QHBoxLayout,
+    QHeaderView,
+    QLineEdit,
+    QMainWindow,
+    QPushButton,
+    Qt,
+    QTableView,
+    QVBoxLayout,
+    QWidget,
+)
+
+from .model import WordSearchModel, add_notes
 from .settingswindow import SettingsWindow
 from .view import window_to_front
 
 
 class SearchWindow(QMainWindow):
-    instance = None
+    instance: SearchWindow | None = None
 
     @classmethod
-    def open(cls, pattern: Optional[str] = None) -> None:
+    def open(cls, text: str, names: bool = False) -> None:
         if cls.instance is None:
-            cls.instance = cls(pattern)
-        else:
-            window_to_front(cls.instance)
+            cls.instance = cls()
+        cls.instance.search(text, names)
+        window_to_front(cls.instance)
 
-    def closeEvent(self, evt: QtGui.QCloseEvent) -> None:
-        type(self).instance = None
-        self.hide()
-        evt.accept()
-
-    def __init__(self, pattern: Optional[str] = None) -> None:
+    def __init__(self) -> None:
         QMainWindow.__init__(self)
+        self.setWindowTitle('JapaNote: select a word')
+        self.resize(900, 450)
+        self.model = WordSearchModel()
 
-        if pattern is None:
-            col = get_collection()
-            pattern = col.conf.get('japanote_pattern', '')
+        central = QWidget()
+        self.setCentralWidget(central)
+        layout = QVBoxLayout(central)
 
-        self.form = searchwindow.Ui_MainWindow()
-        self.form.setupUi(self)  # type: ignore[no-untyped-call]
-        self.form.pattern.setText(pattern)
-        self.form.resultTable.setModel(word_search)
+        top = QHBoxLayout()
+        layout.addLayout(top)
+        self.pattern = QLineEdit()
+        self.pattern.setClearButtonEnabled(True)
+        self.pattern.returnPressed.connect(self.update_search)
+        top.addWidget(self.pattern)
+        search_button = QPushButton('Search')
+        search_button.clicked.connect(self.update_search)
+        top.addWidget(search_button)
 
-        # events
-        self.form.pattern.returnPressed.connect(self.update_search)
-        self.form.searchButton.clicked.connect(self.update_search)
-        self.form.addButton.clicked.connect(self.on_add_notes)
-        self.form.settingsButton.clicked.connect(SettingsWindow.open)
+        self.table = QTableView()
+        self.table.setModel(self.model)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setSortingEnabled(True)
+        self.table.setWordWrap(True)
+        header = self.table.horizontalHeader()
+        assert header is not None
+        header.setStretchLastSection(True)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        layout.addWidget(self.table)
 
+        bottom = QHBoxLayout()
+        layout.addLayout(bottom)
+        add_button = QPushButton('Add selected')
+        add_button.setDefault(True)
+        add_button.clicked.connect(self.on_add)
+        bottom.addWidget(add_button)
+        bottom.addStretch()
+        settings_button = QPushButton('Settings')
+        settings_button.clicked.connect(SettingsWindow.open)
+        bottom.addWidget(settings_button)
+
+    def search(self, text: str, names: bool) -> None:
+        self.model.names = names
+        self.pattern.setText(text)
         self.update_search()
 
-        self.form.pattern.setClearButtonEnabled(True)
+    def update_search(self) -> None:
+        self.model.search(self.pattern.text())
+        self.table.resizeRowsToContents()
+        self.table.selectRow(0)
 
-        self.show()
+    def on_add(self) -> None:
+        selection = self.table.selectionModel()
+        assert selection is not None
+        add_notes(self.model.words[index.row()] for index in selection.selectedRows())
 
-    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+    def keyPressEvent(self, event: Any) -> None:
         if event.key() == Qt.Key.Key_Escape:
             self.close()
+        else:
+            QMainWindow.keyPressEvent(self, event)
 
-    def update_search(self) -> None:
-        # get settings
-        pattern = self.form.pattern.text()
-        # update results
-        word_search.search(pattern)
-        # save settings for persistence
-        col = get_collection()
-        col.conf['japanote_pattern'] = pattern
-
-    def on_add_notes(self) -> None:
-        rows = self.form.resultTable.selectionModel().selectedRows()
-        words = [
-            word_search.words[index.row()]
-            for index in rows
-        ]
-        add_notes(words)
+    def closeEvent(self, event: Any) -> None:
+        type(self).instance = None
+        event.accept()

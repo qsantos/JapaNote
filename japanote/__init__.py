@@ -9,7 +9,7 @@ from aqt.deckbrowser import DeckBrowser, DeckBrowserContent
 from aqt.utils import showInfo
 
 from . import resources
-from .model import add_notes, word_search
+from .model import add_notes, search
 from .searchwindow import SearchWindow
 from .settingswindow import SettingsWindow
 
@@ -37,15 +37,14 @@ def quick_add(text: str, names: bool = False) -> bool:
         resources.ensure(dictionary, lambda: retry(text, names))
         return False
 
-    word_search.is_proper_noun = names
-    word_search.search(text)
-    if not word_search.words:
+    words = search(text, names)
+    if not words:
         showInfo('No word found')
         return False
-    if len(word_search.words) > 1:
-        SearchWindow.open(text)
+    if len(words) > 1:
+        SearchWindow.open(text, names)
         return True
-    add_notes(word_search.words)
+    add_notes(words)
     return True
 
 
