@@ -2,13 +2,25 @@ from __future__ import annotations
 
 from typing import Any
 
-from aqt.qt import QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from anki.decks import DeckId
+from aqt.qt import (
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QVBoxLayout,
+    QWidget,
+)
 
 from . import config
 from .collection import get_collection
 from .view import window_to_front
 
 CURRENT_DECK = '(current deck)'
+NO_OVERRIDE = '(same as above)'
 EXAMPLES = {
     'kanji': '暗記',
     'kana': 'あんき',
@@ -68,6 +80,11 @@ class SettingsWindow(QDialog):
         self.no_id_warning.setStyleSheet('color: #c00')
         layout.addWidget(self.no_id_warning)
 
+        # deck overrides are stored in the card templates, so they also apply to Anki's Add window
+        self.templates_group = QGroupBox('Decks of the cards (deck override of each card type)')
+        self.templates_form = QFormLayout(self.templates_group)
+        layout.addWidget(self.templates_group)
+
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         buttons.rejected.connect(self.close)
         layout.addWidget(buttons)
@@ -111,6 +128,7 @@ class SettingsWindow(QDialog):
             self.config['fields'][role] = box.currentText()
         config.save(self.config)
         self.update_warning()
+        self.update_templates(model)
 
     def on_change_field(self, role: str, text: str) -> None:
         self.config['fields'][role] = text
@@ -119,6 +137,31 @@ class SettingsWindow(QDialog):
 
     def update_warning(self) -> None:
         self.no_id_warning.setVisible(not self.config['fields']['id'])
+
+    def update_templates(self, model: dict[str, Any] | None) -> None:
+        while self.templates_form.rowCount():
+            self.templates_form.removeRow(0)
+        if model is None:
+            return
+        col = get_collection()
+        for template in model['tmpls']:
+            deck = col.decks.get(DeckId(template.get('did') or 0), default=False)
+            current = deck['name'] if deck else NO_OVERRIDE
+            box = self.combobox([NO_OVERRIDE, *self.deck_names], current)
+            box.currentTextChanged.connect(
+                lambda text, name=template['name']: self.on_change_template_deck(name, text),
+            )
+            self.templates_form.addRow(template['name'], box)
+
+    def on_change_template_deck(self, template_name: str, deck_name: str) -> None:
+        col = get_collection()
+        model = col.models.by_name(self.config['model'])
+        if model is None:
+            return
+        for template in model['tmpls']:
+            if template['name'] == template_name:
+                template['did'] = None if deck_name == NO_OVERRIDE else col.decks.id_for_name(deck_name)
+        col.models.update_dict(model)
 
     def reject(self) -> None:
         self.close()
