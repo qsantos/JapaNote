@@ -8,8 +8,10 @@ from aqt import gui_hooks, mw
 from aqt.deckbrowser import DeckBrowser, DeckBrowserContent
 from aqt.utils import showInfo
 
-from . import config, resources
+from . import analyzer, config, resources
+from .dictionary import sentence_word
 from .model import add_notes, search
+from .previewwindow import PreviewWindow
 from .searchwindow import SearchWindow
 from .settingswindow import SettingsWindow
 
@@ -26,7 +28,7 @@ def retry(text: str, names: bool) -> None:
         clear_input()
 
 
-def quick_add(text: str, names: bool = False) -> bool:
+def quick_add(text: str, names: bool = False) -> bool:  # noqa: PLR0911
     """Add a note for text, or open a window to do so; return whether the input field can be cleared"""
     text = text.strip()
     if not text:
@@ -48,14 +50,23 @@ def quick_add(text: str, names: bool = False) -> bool:
     if words:
         SearchWindow.open(text, names)
         return True
-    showInfo('No name found' if names else 'No word found')
-    return False
+    if names:
+        showInfo('No name found')
+        return False
+
+    # not in the dictionary (e.g. a sentence): guess the furigana, and let the user check them
+    if not resources.is_ready('analyzer'):
+        resources.ensure('analyzer', lambda: retry(text, names))
+        return False
+    word = sentence_word(resources.jmdict, text, analyzer.tokenize(text))
+    PreviewWindow.edit(word, 'Not found in the dictionary; please check the furigana.')
+    return True
 
 
 def render(deck_browser: DeckBrowser, content: DeckBrowserContent) -> None:  # noqa: ARG001
     content.stats += f"""
     <fieldset style="width:500px; margin:30px 0 30px 0">
-        <legend>JapaNote: create a note for a Japanese word</legend>
+        <legend>JapaNote: create a note for a Japanese word or sentence</legend>
         <input style="height:2em; box-sizing:border-box; width:100%; margin:5px 0; padding:5px;"
             type="text" id="japanote-input" placeholder="あんき">
         <button onclick="japanoteAdd(false)" style="border:2px solid black">Add Word</button>

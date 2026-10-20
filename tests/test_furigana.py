@@ -1,6 +1,6 @@
 import pytest
 
-from japanote.dictionary import Dictionary
+from japanote.dictionary import Dictionary, sentence_word
 from japanote.furigana import align, format_furigana, normalize_reading
 
 
@@ -54,3 +54,13 @@ def test_align(jmdict: Dictionary, text: str, reading: str, expected: str) -> No
 def test_word_furigana(jmdict: Dictionary, text: str, reading: str, expected: str) -> None:
     assert jmdict.furigana(text, reading) == expected
 
+
+def test_sentence(jmdict: Dictionary) -> None:
+    tokens = [
+        ('今日', 'キョウ'), ('は', 'ハ'), ('大晦日', 'オオミソカ'), ('な', 'ナ'), ('ので', 'ノデ'),
+        ('、', None), ('早く', 'ハヤク'), ('帰り', 'カエリ'), ('まし', 'マシ'), ('た', 'タ'), ('。', None),
+    ]
+    word = sentence_word(jmdict, '今日は大晦日なので、早く帰りました。', tokens)
+    assert word.furigana == '今日[きょう]は 大[おお]晦日[みそか]なので、 早[はや]く 帰[かえ]りました。'
+    assert word.kana == 'きょうはおおみそかなので、はやくかえりました。'
+    assert word.id == ''

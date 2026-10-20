@@ -13,6 +13,7 @@ import os
 import shutil
 import sqlite3
 import urllib.request
+import zipfile
 from collections.abc import Callable
 from typing import Any
 
@@ -93,3 +94,19 @@ def install_database(url: str, sha256: str, path: str, format_: int, progress: P
             os.remove(compressed)
     return new
 
+
+def install_wheel(url: str, sha256: str, directory: str, progress: Progress | None = None) -> None:
+    """Download a pure-Python wheel, and extract it to directory (to be added to sys.path)"""
+    wheel = directory + '.whl'
+    tmp = directory + '.tmp'
+    try:
+        download(url, wheel, sha256, progress)
+        shutil.rmtree(tmp, ignore_errors=True)
+        with zipfile.ZipFile(wheel) as z:
+            z.extractall(tmp)
+        shutil.rmtree(directory, ignore_errors=True)
+        os.replace(tmp, directory)
+    finally:
+        if os.path.exists(wheel):
+            os.remove(wheel)
+        shutil.rmtree(tmp, ignore_errors=True)

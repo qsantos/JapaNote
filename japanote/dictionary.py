@@ -8,10 +8,19 @@ from html import escape
 from typing import TYPE_CHECKING, Any
 
 from . import romkan
-from .furigana import Segment, kanji_readings_from_kanjidic, word_furigana
+from .furigana import (
+    Segment,
+    format_furigana,
+    kanji_readings_from_kanjidic,
+    reading_of,
+    sentence_segments,
+    word_furigana,
+)
 from .kana import normalize
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from .deinflect import Deinflector
 
 # NOTE: must match FORMAT in tools/build_dictionaries.py
@@ -154,3 +163,12 @@ def search_words(dictionary: Dictionary, text: str, deinflector: Deinflector | N
                 words[word.id] = word
     return list(words.values())
 
+
+def sentence_word(
+    dictionary: Dictionary,
+    text: str,
+    tokens: Iterable[tuple[str, str | None]],
+) -> Word:
+    """A Word for text that is not in the dictionary, from its tokens (see analyzer.py)"""
+    segments = sentence_segments(tokens, dictionary.kanji_readings, dictionary.known_furigana)
+    return Word(kanji=text, kana=reading_of(segments), furigana=format_furigana(segments))

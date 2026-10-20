@@ -8,6 +8,7 @@ from aqt.qt import (
     QHeaderView,
     QLineEdit,
     QMainWindow,
+    QModelIndex,
     QPushButton,
     Qt,
     QTableView,
@@ -16,6 +17,7 @@ from aqt.qt import (
 )
 
 from .model import WordSearchModel, add_notes
+from .previewwindow import PreviewWindow
 from .settingswindow import SettingsWindow
 from .view import window_to_front
 
@@ -59,6 +61,7 @@ class SearchWindow(QMainWindow):
         assert header is not None
         header.setStretchLastSection(True)
         header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.table.doubleClicked.connect(self.on_edit)
         layout.addWidget(self.table)
 
         bottom = QHBoxLayout()
@@ -67,6 +70,9 @@ class SearchWindow(QMainWindow):
         add_button.setDefault(True)
         add_button.clicked.connect(self.on_add)
         bottom.addWidget(add_button)
+        edit_button = QPushButton('Edit and add…')
+        edit_button.clicked.connect(lambda: self.on_edit(self.table.currentIndex()))
+        bottom.addWidget(edit_button)
         bottom.addStretch()
         settings_button = QPushButton('Settings')
         settings_button.clicked.connect(SettingsWindow.open)
@@ -86,6 +92,10 @@ class SearchWindow(QMainWindow):
         selection = self.table.selectionModel()
         assert selection is not None
         add_notes(self.model.words[index.row()] for index in selection.selectedRows())
+
+    def on_edit(self, index: QModelIndex) -> None:
+        if index.isValid():
+            PreviewWindow.edit(self.model.words[index.row()])
 
     def keyPressEvent(self, event: Any) -> None:
         if event.key() == Qt.Key.Key_Escape:

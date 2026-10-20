@@ -1,7 +1,8 @@
 """Furigana in Anki's format (e.g. '牛[ぎゅう]肉[にく]')
 
 When the dictionary knows a word, its furigana come from JmdictFurigana. Otherwise, the kanji are
-aligned with the kana based on their known readings (see align).
+aligned with the kana based on their known readings (see align). Sentences are first split into
+words with a morphological analyzer (see analyzer.py).
 """
 from __future__ import annotations
 
@@ -157,3 +158,21 @@ def word_furigana(
 ) -> str:
     return format_furigana(word_segments(text, reading, kanji_readings, known_furigana))
 
+
+def sentence_segments(
+    tokens: Iterable[tuple[str, str | None]],
+    kanji_readings: KanjiReadings,
+    known_furigana: KnownFurigana | None = None,
+) -> list[Segment]:
+    """Segments for a sentence, given its tokens as (surface, reading) pairs"""
+    segments: list[Segment] = []
+    for surface, reading in tokens:
+        if reading is None or not has_kanji(surface):
+            segments.append((surface, surface))
+        else:
+            segments.extend(word_segments(surface, reading, kanji_readings, known_furigana))
+    return segments
+
+
+def reading_of(segments: Iterable[Segment]) -> str:
+    return ''.join(reading for _, reading in segments)
