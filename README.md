@@ -15,7 +15,7 @@ and `common` for common words.
 ## Dictionaries
 
 The add-on does not ship any dictionary. On first start, it downloads the main dictionary (about 20 MB); the names
-dictionary (about 35 MB) and the sentence analyzer (about 20 MB) are downloaded the first time they are needed. The
+dictionary (about 22 MB) and the sentence analyzer (about 20 MB) are downloaded the first time they are needed. The
 dictionaries are then updated in the background, at most once a day. Everything is stored in the add-on's
 `user_files` folder.
 

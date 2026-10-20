@@ -37,7 +37,7 @@ deinflector = Deinflector()
 DICTIONARIES = {'jmdict': jmdict, 'names': names}
 LABELS = {
     'jmdict': 'the dictionary (about 20 MB)',
-    'names': 'the names dictionary (about 35 MB)',
+    'names': 'the names dictionary (about 22 MB)',
     'analyzer': 'the sentence analyzer (about 20 MB)',
 }
 

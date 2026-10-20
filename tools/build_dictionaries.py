@@ -8,26 +8,33 @@ assets (see .github/workflows/dictionaries.yml).
 Two databases are built:
 - jmdict: JMdict (vocabulary), JmdictFurigana, KANJIDIC2 (kanji readings, for furigana), JLPT levels
   from Jonathan Waller's lists (with JMdict IDs from yomitan-jlpt-vocab), pitch accents from Kanjium;
-- names: JMnedict (proper nouns), JmnedictFurigana; it is optional and downloaded on first use.
+- names: JMnedict (proper nouns), without the unclassified ones, and the furigana of JmnedictFurigana
+  that the add-on would not find by itself; it is optional and downloaded on first use.
 
 Usage:
     build_dictionaries.py download SOURCES_DIR
     build_dictionaries.py build SOURCES_DIR OUTPUT_DIR BASE_URL
 """
+from __future__ import annotations
+
 import csv
 import gzip
 import hashlib
+import importlib
 import json
 import os
 import re
 import shutil
 import sqlite3
 import sys
+import types
 import urllib.request
 import xml.etree.ElementTree as ET
-from collections.abc import Iterable, Iterator, Mapping
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Iterator, Mapping
 
 # NOTE: must match FORMAT in japanote/dictionary.py
 FORMAT = 1
@@ -225,12 +232,46 @@ def parse_accents(path: str) -> Iterator[tuple[str, str, str]]:
         yield text, reading, accents
 
 
-def build_database(
+def is_classified(data: dict[str, Any]) -> bool:
+    """Whether a name has a type (e.g. surname, place), unlike the vaguest ones"""
+    return any(pos != 'unclass' for sense in data['s'] for pos in sense.get('pos', []))
+
+
+def load_furigana_module() -> types.ModuleType:
+    """Import japanote.furigana, without the package's __init__, which needs Anki"""
+    package = types.ModuleType('japanote')
+    package.__path__ = [os.path.join(os.path.dirname(__file__), '..', 'japanote')]
+    sys.modules['japanote'] = package
+    return importlib.import_module('japanote.furigana')
+
+
+def furigana_differ(kanjidic: Iterable[tuple[str, str]]) -> Callable[[str, str, str], bool]:
+    """Return whether the known furigana of a text differ from those the add-on would guess
+
+    Most of the furigana of names can be guessed from the readings of their kanji, so they need
+    not be stored (they are about a third of the database).
+    """
+    furigana = load_furigana_module()
+    readings = {
+        literal: furigana.kanji_readings_from_kanjidic(json.loads(kanji_readings))
+        for literal, kanji_readings in kanjidic
+    }
+
+    def differ(text: str, reading: str, segments: str) -> bool:
+        known = [(s[0], s[-1]) for s in json.loads(segments)]
+        guessed = furigana.word_segments(text, reading, lambda c: readings.get(c, []))
+        return bool(furigana.format_furigana(guessed) != furigana.format_furigana(known))
+    return differ
+
+
+def build_database(  # noqa: PLR0913
     path: str,
     entries_path: str,
     furigana_path: str,
     tables: Mapping[str, Iterable[tuple[Any, ...]]],
     version: str,
+    keep_entry: Callable[[dict[str, Any]], bool] | None = None,
+    keep_furigana: Callable[[str, str, str], bool] | None = None,
 ) -> None:
     """Build a database of entries, with the rows of tables that are specific to it"""
     if os.path.exists(path):
@@ -240,12 +281,17 @@ def build_database(
     root = read_xml(entries_path)
     for entry in root.iter('entry'):
         id_, rank, data, keys = parse_entry(entry)
+        if keep_entry is not None and not keep_entry(data):
+            continue
         db.execute(
             'INSERT INTO entry VALUES (?, ?, ?)',
             (id_, rank, json.dumps(data, ensure_ascii=False, separators=(',', ':'))),
         )
         db.executemany('INSERT INTO key VALUES (?, ?)', ((key, id_) for key in keys))
-    db.executemany('INSERT OR IGNORE INTO furigana VALUES (?, ?, ?)', parse_furigana(furigana_path))
+    db.executemany(
+        'INSERT OR IGNORE INTO furigana VALUES (?, ?, ?)',
+        (row for row in parse_furigana(furigana_path) if keep_furigana is None or keep_furigana(*row)),
+    )
     for table, rows in tables.items():
         for row in rows:
             db.execute(f'INSERT INTO {table} VALUES ({", ".join("?" * len(row))})', row)
@@ -279,18 +325,20 @@ def build(sources_dir: str, output_dir: str, base_url: str) -> None:
         return os.path.join(sources_dir, filename)
 
     manifest: dict[str, Any] = {'format': FORMAT, 'version': version, 'dictionaries': {}}
+    kanjidic = list(parse_kanjidic(source('kanjidic2.xml.gz')))
     jmdict_tables: dict[str, Iterable[tuple[Any, ...]]] = {
-        'kanji': parse_kanjidic(source('kanjidic2.xml.gz')),
+        'kanji': kanjidic,
         'jlpt': parse_jlpt({level: source(f'jlpt-n{level}.csv') for level in range(1, 6)}),
         'pitch': parse_accents(source('accents.txt')),
     }
-    for name, entries, furigana, tables in [
-        ('jmdict', 'JMdict_e.gz', 'JmdictFurigana.json', jmdict_tables),
-        ('names', 'JMnedict.xml.gz', 'JmnedictFurigana.json', {}),
-    ]:
+    databases: list[tuple[str, str, str, Mapping[str, Iterable[tuple[Any, ...]]], Any, Any]] = [
+        ('jmdict', 'JMdict_e.gz', 'JmdictFurigana.json', jmdict_tables, None, None),
+        ('names', 'JMnedict.xml.gz', 'JmnedictFurigana.json', {}, is_classified, furigana_differ(kanjidic)),
+    ]
+    for name, entries, furigana, tables, keep_entry, keep_furigana in databases:
         print(f'Building {name}')
         path = os.path.join(output_dir, f'{name}-v{FORMAT}-{version}.sqlite')
-        build_database(path, source(entries), source(furigana), tables, version)
+        build_database(path, source(entries), source(furigana), tables, version, keep_entry, keep_furigana)
         compressed, size, sha256 = compress(path)
         os.remove(path)
         manifest['dictionaries'][name] = {
