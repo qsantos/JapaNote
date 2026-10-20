@@ -36,6 +36,11 @@ def test_align(jmdict: Dictionary, text: str, reading: str, expected: str) -> No
 
 
 @pytest.mark.parametrize(('text', 'reading', 'expected'), [
+    # not known by JmdictFurigana; one kanji has an irregular reading
+    ('三途の川', 'さんずのかわ', '三[さん]途[ず]の 川[かわ]'),
+    ('土饅頭', 'どまんじゅう', '土[ど]饅[まん]頭[じゅう]'),
+    # the の of 身の代 is not written
+    ('身代金', 'みのしろきん', '身[み]代[のしろ]金[きん]'),
     # these do not align kanji by kanji, but are known by JmdictFurigana
     ('塩っぱい', 'しょっぱい', '塩[しょ]っぱい'),
     ('義理のお兄さん', 'ぎりのおにいさん', '義[ぎ]理[り]のお 兄[にい]さん'),

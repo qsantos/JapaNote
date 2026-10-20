@@ -72,16 +72,26 @@ def align(text: str, reading: str, kanji_readings: KanjiReadings) -> list[Segmen
     """Match the characters of text against the kana of reading
 
     For instance, for '牛肉' and 'ぎゅうにく', return [('牛', 'ぎゅう'), ('肉', 'にく')]. When no
-    match is found, return the whole text with the whole reading.
+    match is found, let one kanji take an unknown reading (e.g. 途 in 三途の川, read さんずのかわ);
+    failing that, return the whole text with the whole reading.
     """
-    return next(iter_alignments(text, reading, kanji_readings), [(text, reading)])
+    for alignment in iter_alignments(text, reading, kanji_readings, wildcard=False):
+        return alignment
+    for alignment in iter_alignments(text, reading, kanji_readings, wildcard=True):
+        return alignment
+    return [(text, reading)]
 
 
-def iter_alignments(text: str, reading: str, kanji_readings: KanjiReadings) -> Iterator[list[Segment]]:
-    """Yield the alignments of text with reading"""
-    q: deque[tuple[list[Segment], str, str]] = deque([([], text, reading)])
+def iter_alignments(
+    text: str,
+    reading: str,
+    kanji_readings: KanjiReadings,
+    wildcard: bool,
+) -> Iterator[list[Segment]]:
+    """Yield the alignments of text with reading; with wildcard, one kanji may have any reading"""
+    q: deque[tuple[list[Segment], str, str, bool]] = deque([([], text, reading, wildcard)])
     while q:
-        prefix, text, reading = q.popleft()
+        prefix, text, reading, wildcard = q.popleft()
         if not text and not reading:
             yield prefix
         if not text or not reading:
@@ -98,7 +108,10 @@ def iter_alignments(text: str, reading: str, kanji_readings: KanjiReadings) -> I
         candidates = list(dict.fromkeys(readings + lengthened))
         for candidate in candidates:
             if hiragana_to_katakana(reading[0]) == candidate or reading.startswith(candidate):
-                q.append(([*prefix, (c, candidate)], text[1:], reading[len(candidate):]))
+                q.append(([*prefix, (c, candidate)], text[1:], reading[len(candidate):], wildcard))
+        if wildcard and has_kanji(c):
+            for end in range(1, len(reading) + 1):
+                q.append(([*prefix, (c, reading[:end])], text[1:], reading[end:], False))
 
 
 def format_furigana(segments: Iterable[Segment]) -> str:
