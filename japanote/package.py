@@ -55,10 +55,9 @@ def encode(values: list[Any], encoding: Any) -> list[str]:
         for value in values:
             if isinstance(value, bytes):
                 matrix = _int16_array(value)
-                # from the last row to the first, so that the previous rows are still the original ones
-                for i in range(len(matrix) - 1, width - 1, -1):
-                    matrix[i] -= matrix[i - width]
-                encoded.append({'int16': matrix.tolist()})
+                # NOTE: the differences may not fit in 16 bits
+                deltas = [matrix[i] - (matrix[i - width] if i >= width else 0) for i in range(len(matrix))]
+                encoded.append({'int16': deltas})
             else:
                 encoded.append(value)
         return [_dumps(encoded)]
@@ -86,10 +85,10 @@ def decode(lines: IO[str], encoding: Any) -> list[Any]:
         decoded = []
         for value in json.loads(lines.readline()):
             if isinstance(value, dict):
-                matrix = array('h', value['int16'])
-                for i in range(width, len(matrix)):
-                    matrix[i] += matrix[i - width]
-                decoded.append(_int16_bytes(matrix))
+                values = value['int16']
+                for i in range(width, len(values)):
+                    values[i] += values[i - width]
+                decoded.append(_int16_bytes(array('h', values)))
             else:
                 decoded.append(value)
         return decoded
