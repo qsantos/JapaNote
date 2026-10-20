@@ -1,0 +1,61 @@
+# Build the dictionaries from their latest versions, and publish them as assets of the
+# "dictionaries" release, where the add-on looks for them (see japanote/resources.py)
+name: Dictionaries
+
+on:
+  schedule:
+    # every Monday
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dictionaries
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download sources
+        run: python tools/build_dictionaries.py download sources
+
+      - name: Build
+        run: >
+          python tools/build_dictionaries.py build sources dist
+          "https://github.com/${{ github.repository }}/releases/download/dictionaries"
+
+      - name: Test
+        run: |
+          pip install pytest
+          mkdir db
+          for name in jmdict names; do gunzip -c dist/$name-*.sqlite.gz > db/$name.sqlite; done
+          JAPANOTE_DB_DIR=db python -m pytest tests
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view dictionaries > /dev/null 2>&1; then
+            gh release create dictionaries --latest=false --title 'Dictionaries' \
+              --notes 'Dictionaries downloaded by the add-on; updated every week. See README.md for credits.'
+          fi
+          # upload the databases before the manifest that points to them
+          gh release upload dictionaries dist/*.sqlite.gz --clobber
+          gh release upload dictionaries dist/manifest-v*.json --clobber
+          # keep the previous build, for clients that are downloading it right now
+          assets=$(gh release view dictionaries --json assets --jq '.assets[].name' | grep -E '\.sqlite\.gz$')
+          keep=$(echo "$assets" | grep -oE '[0-9]{8}' | sort -u | tail -n 2)
+          for asset in $assets; do
+            date=$(echo "$asset" | grep -oE '[0-9]{8}')
+            if ! echo "$keep" | grep -qx "$date"; then
+              gh release delete-asset dictionaries "$asset" --yes
+            fi
+          done
