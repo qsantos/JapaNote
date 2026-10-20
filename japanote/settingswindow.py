@@ -5,6 +5,7 @@ from typing import Any
 
 from anki.decks import DeckId
 from aqt.qt import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -48,6 +49,8 @@ def credits() -> str:
         'Group</a>, used in conformance with the Group\'s <a href="https://www.edrdg.org/edrdg/licence.html">'
         'licence</a> (CC BY-SA 4.0); furigana from '
         '<a href="https://github.com/Doublevil/JmdictFurigana">JmdictFurigana</a> (CC BY-SA 4.0); '
+        'JLPT levels from <a href="http://www.tanos.co.uk/jlpt/">Jonathan Waller</a> (CC BY), matched by '
+        '<a href="https://github.com/stephenmk/yomitan-jlpt-vocab">yomitan-jlpt-vocab</a> (CC BY-SA 4.0); '
         'sentences analyzed with <a href="https://github.com/mocobeta/janome">Janome</a> (Apache 2.0) and '
         f'the IPA dictionary.{installed}'
     )
@@ -98,6 +101,14 @@ class SettingsWindow(QDialog):
         self.tags = QLineEdit(self.config['tags'])
         self.tags.textChanged.connect(self.on_change_tags)
         form.addRow('Tags', self.tags)
+        self.tag_jlpt = QCheckBox('Tag the JLPT level (e.g. JLPT::N3)')
+        self.tag_jlpt.setChecked(self.config['tag_jlpt'])
+        self.tag_jlpt.toggled.connect(lambda checked: self.on_change_option('tag_jlpt', checked))
+        form.addRow('', self.tag_jlpt)
+        self.tag_common = QCheckBox('Tag common words (common)')
+        self.tag_common.setChecked(self.config['tag_common'])
+        self.tag_common.toggled.connect(lambda checked: self.on_change_option('tag_common', checked))
+        form.addRow('', self.tag_common)
 
         self.no_id_warning = QLabel(
             'We advise you to save the JMdict ID in a field, so that duplicates are detected, '
@@ -170,6 +181,10 @@ class SettingsWindow(QDialog):
 
     def on_change_tags(self, text: str) -> None:
         self.config['tags'] = text
+        config.save(self.config)
+
+    def on_change_option(self, key: str, value: bool) -> None:
+        self.config[key] = value
         config.save(self.config)
 
     def update_warning(self) -> None:

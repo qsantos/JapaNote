@@ -6,13 +6,15 @@ dictionaries into SQLite databases that are ready to query, and that are publish
 assets (see .github/workflows/dictionaries.yml).
 
 Two databases are built:
-- jmdict: JMdict (vocabulary), JmdictFurigana, KANJIDIC2 (kanji readings, for furigana);
+- jmdict: JMdict (vocabulary), JmdictFurigana, KANJIDIC2 (kanji readings, for furigana), JLPT levels
+  from Jonathan Waller's lists (with JMdict IDs from yomitan-jlpt-vocab);
 - names: JMnedict (proper nouns), JmnedictFurigana; it is optional and downloaded on first use.
 
 Usage:
     build_dictionaries.py download SOURCES_DIR
     build_dictionaries.py build SOURCES_DIR OUTPUT_DIR BASE_URL
 """
+import csv
 import gzip
 import hashlib
 import json
@@ -23,7 +25,7 @@ import sqlite3
 import sys
 import urllib.request
 import xml.etree.ElementTree as ET
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Mapping
 from datetime import datetime, timezone
 from typing import Any
 
@@ -32,19 +34,25 @@ FORMAT = 1
 
 EDRDG = 'http://ftp.edrdg.org/pub/Nihongo'
 FURIGANA = 'https://github.com/Doublevil/JmdictFurigana/releases/latest/download'
+JLPT = 'https://raw.githubusercontent.com/stephenmk/yomitan-jlpt-vocab/main/original_data'
 SOURCES = {
     'JMdict_e.gz': f'{EDRDG}/JMdict_e.gz',
     'JMnedict.xml.gz': f'{EDRDG}/JMnedict.xml.gz',
     'kanjidic2.xml.gz': f'{EDRDG}/kanjidic2.xml.gz',
     'JmdictFurigana.json': f'{FURIGANA}/JmdictFurigana.json',
     'JmnedictFurigana.json': f'{FURIGANA}/JmnedictFurigana.json',
+    **{
+        f'jlpt-n{level}.csv': f'{JLPT}/n{level}.csv'
+        for level in range(1, 6)
+    },
 }
 
 ATTRIBUTION = (
     'JMdict, JMnedict and KANJIDIC2 are the property of the Electronic Dictionary Research and '
     "Development Group (https://www.edrdg.org/), and are used in conformance with the Group's "
     'licence (CC BY-SA 4.0). Furigana from JmdictFurigana (https://github.com/Doublevil/JmdictFurigana), '
-    'CC BY-SA 4.0.'
+    'CC BY-SA 4.0. JLPT levels from Jonathan Waller (http://www.tanos.co.uk/jlpt/), CC BY, with JMdict IDs '
+    'from yomitan-jlpt-vocab (https://github.com/stephenmk/yomitan-jlpt-vocab), CC BY-SA 4.0.'
 )
 
 SCHEMA = """
@@ -59,6 +67,8 @@ CREATE TABLE furigana (
 ) WITHOUT ROWID;
 -- readings is a JSON list of the on, kun and nanori readings, as in KANJIDIC2
 CREATE TABLE kanji (literal TEXT PRIMARY KEY, readings TEXT NOT NULL) WITHOUT ROWID;
+-- level is 1 for N1 to 5 for N5; these lists are unofficial
+CREATE TABLE jlpt (entry INTEGER PRIMARY KEY, level INTEGER NOT NULL);
 """
 
 # priorities that make a word "common", like the (P) marker of EDICT
@@ -178,13 +188,28 @@ def parse_kanjidic(path: str) -> Iterator[tuple[str, str]]:
         yield literal, json.dumps(readings, ensure_ascii=False, separators=(',', ':'))
 
 
+def parse_jlpt(paths: dict[int, str]) -> Iterator[tuple[int, int]]:
+    levels: dict[int, int] = {}
+    for level, path in paths.items():
+        with open(path, encoding='utf-8', newline='') as f:
+            for row in csv.DictReader(f):
+                # a few entries (e.g. single kanji) have no matching JMdict entry
+                if not row['jmdict_seq']:
+                    continue
+                # when a word is on several lists, keep the easiest level
+                id_ = int(row['jmdict_seq'])
+                levels[id_] = max(levels.get(id_, 0), level)
+    yield from levels.items()
+
+
 def build_database(
     path: str,
     entries_path: str,
     furigana_path: str,
-    kanji: Iterable[tuple[str, str]],
+    tables: Mapping[str, Iterable[tuple[Any, ...]]],
     version: str,
 ) -> None:
+    """Build a database of entries, with the rows of tables that are specific to it"""
     if os.path.exists(path):
         os.remove(path)
     db = sqlite3.connect(path)
@@ -198,7 +223,9 @@ def build_database(
         )
         db.executemany('INSERT INTO key VALUES (?, ?)', ((key, id_) for key in keys))
     db.executemany('INSERT OR IGNORE INTO furigana VALUES (?, ?, ?)', parse_furigana(furigana_path))
-    db.executemany('INSERT INTO kanji VALUES (?, ?)', kanji)
+    for table, rows in tables.items():
+        for row in rows:
+            db.execute(f'INSERT INTO {table} VALUES ({", ".join("?" * len(row))})', row)
     db.executemany('INSERT INTO meta VALUES (?, ?)', [
         ('format', str(FORMAT)),
         ('version', version),
@@ -229,13 +256,17 @@ def build(sources_dir: str, output_dir: str, base_url: str) -> None:
         return os.path.join(sources_dir, filename)
 
     manifest: dict[str, Any] = {'format': FORMAT, 'version': version, 'dictionaries': {}}
-    for name, entries, furigana, kanji in [
-        ('jmdict', 'JMdict_e.gz', 'JmdictFurigana.json', parse_kanjidic(source('kanjidic2.xml.gz'))),
-        ('names', 'JMnedict.xml.gz', 'JmnedictFurigana.json', []),
+    jmdict_tables: dict[str, Iterable[tuple[Any, ...]]] = {
+        'kanji': parse_kanjidic(source('kanjidic2.xml.gz')),
+        'jlpt': parse_jlpt({level: source(f'jlpt-n{level}.csv') for level in range(1, 6)}),
+    }
+    for name, entries, furigana, tables in [
+        ('jmdict', 'JMdict_e.gz', 'JmdictFurigana.json', jmdict_tables),
+        ('names', 'JMnedict.xml.gz', 'JmnedictFurigana.json', {}),
     ]:
         print(f'Building {name}')
         path = os.path.join(output_dir, f'{name}-v{FORMAT}-{version}.sqlite')
-        build_database(path, source(entries), source(furigana), kanji, version)
+        build_database(path, source(entries), source(furigana), tables, version)
         compressed, size, sha256 = compress(path)
         os.remove(path)
         manifest['dictionaries'][name] = {

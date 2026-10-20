@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 from aqt.qt import QDialog, QDialogButtonBox, QFormLayout, QLabel, QLineEdit, QPlainTextEdit, QVBoxLayout
@@ -64,13 +65,12 @@ class PreviewWindow(QDialog):
 
     def on_add(self) -> None:
         meanings = [line.strip() for line in self.definition.toPlainText().splitlines() if line.strip()]
-        word = Word(
+        word = replace(
+            self.word,
             kanji=self.kanji.text().strip(),
             kana=self.kana.text().strip(),
             furigana=self.furigana.text().strip(),
             meanings=meanings,
-            id=self.word.id,
-            pos=self.word.pos,
         )
         if add_notes([word]):
             self.close()

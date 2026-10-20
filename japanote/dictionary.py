@@ -38,6 +38,10 @@ class Word:
     id: str = ''
     # parts of speech (e.g. 'v1', 'n')
     pos: frozenset[str] = frozenset()
+    # JLPT level (e.g. 3 for N3), from unofficial lists
+    jlpt: int | None = None
+    # marked as common in JMdict
+    common: bool = False
 
     def __repr__(self) -> str:
         return f'<{self.kanji}>'
@@ -146,7 +150,13 @@ class Dictionary:
             meanings=['; '.join(sense.get('g', [])) for sense in senses],
             id=f'{self.id_prefix}{id_}',
             pos=frozenset(pos for sense in data.get('s', []) for pos in sense.get('pos', [])),
+            jlpt=self.jlpt(id_),
+            common=any(form.get('p') for form in data.get('k', []) + data['r']),
         )
+
+    def jlpt(self, id_: int) -> int | None:
+        row = self.db.execute('SELECT level FROM jlpt WHERE entry = ?', (id_,)).fetchone()
+        return int(row[0]) if row else None
 
 
 def search_words(dictionary: Dictionary, text: str, deinflector: Deinflector | None = None) -> list[Word]:

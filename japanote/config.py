@@ -36,6 +36,9 @@ def default() -> dict[str, Any]:
         'fields': dict.fromkeys(FIELDS, ''),
         # tags of new notes, separated by spaces
         'tags': 'japanote',
+        # also tag the JLPT level (e.g. JLPT::N3), and common words
+        'tag_jlpt': True,
+        'tag_common': True,
     }
 
 

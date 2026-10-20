@@ -73,6 +73,10 @@ def add_notes(words: Iterable[Word]) -> int:
         for role, name in fields.items():
             note[name] = values[role]
         note.tags = conf['tags'].split()
+        if conf['tag_jlpt'] and word.jlpt:
+            note.tags.append(f'JLPT::N{word.jlpt}')
+        if conf['tag_common'] and word.common:
+            note.tags.append('common')
 
         if 'id' in fields and word.id:
             is_duplicate = find_by_id(fields['id'], word.id)

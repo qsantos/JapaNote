@@ -63,6 +63,9 @@ lint.ignore = [
 ]
 line-length = 119
 
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLR2004"]  # Magic value used in comparison
+
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = "single"
 

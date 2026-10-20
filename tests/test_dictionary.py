@@ -37,3 +37,15 @@ def test_names(names: Dictionary) -> None:
     words = search_words(names, 'とうきょう')
     assert any(w.kanji == '東京' and w.id.startswith('EntN') for w in words)
     assert all(w.meanings for w in words)
+
+
+
+def test_tags(jmdict: Dictionary) -> None:
+    word = jmdict.lookup('たべる')[0]
+    assert word.jlpt == 5
+    assert word.common
+    word = jmdict.lookup('しんかんせん')[0]
+    assert word.jlpt == 2
+    word = jmdict.lookup('にわかあめ')[0]
+    assert word.jlpt is None
+    assert not word.common
