@@ -30,6 +30,7 @@ class PreviewWindow(QDialog):
         layout = QVBoxLayout(self)
         self.message = QLabel()
         self.message.setWordWrap(True)
+        self.message.setOpenExternalLinks(True)
         layout.addWidget(self.message)
 
         form = QFormLayout()
