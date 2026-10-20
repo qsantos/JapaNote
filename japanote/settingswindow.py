@@ -12,6 +12,7 @@ from aqt.qt import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -94,6 +95,10 @@ class SettingsWindow(QDialog):
             self.field_boxes[role] = box
             form.addRow(label, self.with_example(box, EXAMPLES[role]))
 
+        self.tags = QLineEdit(self.config['tags'])
+        self.tags.textChanged.connect(self.on_change_tags)
+        form.addRow('Tags', self.tags)
+
         self.no_id_warning = QLabel(
             'We advise you to save the JMdict ID in a field, so that duplicates are detected, '
             'and notes can be updated later.',
@@ -162,6 +167,10 @@ class SettingsWindow(QDialog):
         self.config['fields'][role] = text
         config.save(self.config)
         self.update_warning()
+
+    def on_change_tags(self, text: str) -> None:
+        self.config['tags'] = text
+        config.save(self.config)
 
     def update_warning(self) -> None:
         self.no_id_warning.setVisible(not self.config['fields']['id'])

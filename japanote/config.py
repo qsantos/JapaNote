@@ -34,6 +34,8 @@ def default() -> dict[str, Any]:
         'model': '',
         # field role (see FIELDS) → name of the field, or '' to leave it out
         'fields': dict.fromkeys(FIELDS, ''),
+        # tags of new notes, separated by spaces
+        'tags': 'japanote',
     }
 
 
