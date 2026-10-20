@@ -4,16 +4,17 @@ from typing import Any
 
 from aqt.qt import QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
+from . import config
 from .collection import get_collection
 from .view import window_to_front
 
-# configuration key → label, example
-FIELDS = {
-    'japanote_kanjiField': ('Put kanji in', '暗記'),
-    'japanote_kanaField': ('Put kana in', 'あんき'),
-    'japanote_furiganaField': ('Put furigana in', '暗[あん]記[き]'),
-    'japanote_definitionField': ('Put definition in', 'memorization'),
-    'japanote_idField': ('Put JMdict ID in', 'EntL1586910'),
+CURRENT_DECK = '(current deck)'
+EXAMPLES = {
+    'kanji': '暗記',
+    'kana': 'あんき',
+    'furigana': '暗[あん]記[き]',
+    'definition': 'memorization',
+    'id': 'EntL1586910',
 }
 
 
@@ -32,9 +33,11 @@ class SettingsWindow(QDialog):
         QDialog.__init__(self)
         self.setWindowTitle('JapaNote settings')
         col = get_collection()
-        col.conf['japanote_hasopensettings'] = True
+        self.config = config.get()
+        self.config['configured'] = True
+        config.save(self.config)
 
-        deck_names = sorted(deck.name for deck in col.decks.all_names_and_ids())
+        self.deck_names = sorted(deck.name for deck in col.decks.all_names_and_ids())
         model_names = sorted(model.name for model in col.models.all_names_and_ids())
 
         layout = QVBoxLayout(self)
@@ -42,20 +45,20 @@ class SettingsWindow(QDialog):
         form = QFormLayout()
         layout.addLayout(form)
 
-        self.deck_box = self.combobox(deck_names, col.conf.get('japanote_deck') or '')
+        self.deck_box = self.combobox([CURRENT_DECK, *self.deck_names], self.config['deck'] or CURRENT_DECK)
         self.deck_box.currentTextChanged.connect(self.on_change_deck)
         form.addRow('Deck', self.deck_box)
 
-        self.model_box = self.combobox(model_names, col.conf.get('japanote_model') or '')
+        self.model_box = self.combobox(model_names, self.config['model'])
         self.model_box.currentTextChanged.connect(self.on_change_model)
         form.addRow('Note type', self.model_box)
 
         self.field_boxes: dict[str, QComboBox] = {}
-        for key, (label, example) in FIELDS.items():
+        for role, label in config.FIELDS.items():
             box = QComboBox()
-            box.currentTextChanged.connect(lambda text, key=key: self.on_change_field(key, text))
-            self.field_boxes[key] = box
-            form.addRow(label, self.with_example(box, example))
+            box.currentTextChanged.connect(lambda text, role=role: self.on_change_field(role, text))
+            self.field_boxes[role] = box
+            form.addRow(label, self.with_example(box, EXAMPLES[role]))
 
         self.no_id_warning = QLabel(
             'We advise you to save the JMdict ID in a field, so that duplicates are detected, '
@@ -69,8 +72,7 @@ class SettingsWindow(QDialog):
         buttons.rejected.connect(self.close)
         layout.addWidget(buttons)
 
-        # save the selected deck and note type, when they were not set yet
-        self.on_change_deck(self.deck_box.currentText())
+        # select a note type when there is none yet
         self.on_change_model(self.model_box.currentText())
 
     def combobox(self, items: list[str], current: str) -> QComboBox:
@@ -91,29 +93,32 @@ class SettingsWindow(QDialog):
         return container
 
     def on_change_deck(self, text: str) -> None:
-        get_collection().conf['japanote_deck'] = text
+        self.config['deck'] = '' if text == CURRENT_DECK else text
+        config.save(self.config)
 
     def on_change_model(self, model_name: str) -> None:
         col = get_collection()
-        col.conf['japanote_model'] = model_name
+        self.config['model'] = model_name
         model = col.models.by_name(model_name)
         field_names = [''] + ([field['name'] for field in model['flds']] if model else [])
-        for key, box in self.field_boxes.items():
-            current = col.conf.get(key) or ''
+        for role, box in self.field_boxes.items():
+            current = self.config['fields'][role]
             box.blockSignals(True)
             box.clear()
             box.addItems(field_names)
             box.setCurrentIndex(field_names.index(current) if current in field_names else 0)
             box.blockSignals(False)
-            col.conf[key] = box.currentText()
+            self.config['fields'][role] = box.currentText()
+        config.save(self.config)
         self.update_warning()
 
-    def on_change_field(self, key: str, text: str) -> None:
-        get_collection().conf[key] = text
+    def on_change_field(self, role: str, text: str) -> None:
+        self.config['fields'][role] = text
+        config.save(self.config)
         self.update_warning()
 
     def update_warning(self) -> None:
-        self.no_id_warning.setVisible(not get_collection().conf.get('japanote_idField'))
+        self.no_id_warning.setVisible(not self.config['fields']['id'])
 
     def reject(self) -> None:
         self.close()

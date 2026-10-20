@@ -4,51 +4,17 @@ from gettext import ngettext
 from typing import TYPE_CHECKING, Any
 
 from anki.collection import SearchNode
-from anki.models import NotetypeDict
-from anki.notes import Note
+from anki.notes import NoteFieldsCheckResult
 from aqt.qt import QAbstractTableModel, QModelIndex, Qt
 from aqt.utils import showInfo, tooltip
 
-from . import resources
+from . import config, resources
 from .collection import get_collection
 from .dictionary import Word, search_words
 from .settingswindow import SettingsWindow
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-
-
-def check_field(model: NotetypeDict, config_key: str) -> bool:
-    col = get_collection()
-    try:
-        model_field = col.conf[config_key]
-    except KeyError:
-        return True
-    if not model_field:
-        return True
-    for field in model['flds']:
-        if field['name'] == model_field:
-            return True
-    showInfo(f'Field "{model_field}" not found')
-    return False
-
-
-def note_set_field(note: Note, config_key: str, value: str) -> None:
-    col = get_collection()
-    try:
-        model_field = col.conf[config_key]
-    except KeyError:
-        return
-    if not model_field:
-        return
-    try:
-        note[model_field] = value if value is not None else ''
-    except KeyError:
-        model = col.models.get(note.mid)
-        if model is None:
-            showInfo(f'Model not found')
-        else:
-            showInfo(f'Note type "{model["name"]}" has no field "{model_field}"')
 
 
 def find_by_id(field_name: str, word_id: str) -> bool:
@@ -62,71 +28,69 @@ def find_by_id(field_name: str, word_id: str) -> bool:
     return bool(col.find_notes(search))
 
 
-def add_notes(words: Iterable[Word]) -> None:
-    col = get_collection()
-    if not col.conf.get('japanote_hasopensettings'):
-        showInfo('Please check the settings first')
-        SettingsWindow.open()
-        return
-
-    # select deck
-    deck_name = col.conf.get('japanote_deck')
-    if deck_name is None:
-        deck_id = col.decks.selected()
-    else:
-        deck_id = col.decks.id(deck_name) or col.decks.selected()
-    deck = col.decks.get(deck_id)
-    if deck is None:
-        showInfo('Deck not found')
-        return
-
-    # select model
-    try:
-        model_name = col.conf['japanote_model']
-    except KeyError:
-        showInfo('Note type is not set')
-        return
-    model = col.models.by_name(model_name)
+def settings_problem(conf: dict[str, Any]) -> str | None:
+    """What prevents adding notes with these settings, if anything"""
+    if not conf['configured']:
+        return 'Please check the settings first'
+    model = get_collection().models.by_name(conf['model'])
     if model is None:
-        showInfo('Note type not found')
-        return
+        return f'Note type "{conf["model"]}" not found; please check the settings'
+    field_names = {field['name'] for field in model['flds']}
+    for name in conf['fields'].values():
+        if name and name not in field_names:
+            return f'Note type "{model["name"]}" has no field "{name}"; please check the settings'
+    return None
 
-    # check fields
-    if not check_field(model, 'japanote_kanjiField'):
-        return
-    if not check_field(model, 'japanote_kanaField'):
-        return
-    if not check_field(model, 'japanote_furiganaField'):
-        return
-    if not check_field(model, 'japanote_definitionField'):
-        return
-    if not check_field(model, 'japanote_idField'):
-        return
 
-    n_newcards = 0
+def add_notes(words: Iterable[Word]) -> int:
+    """Add a note for each word, and return the number of new cards"""
+    col = get_collection()
+    conf = config.get()
+    problem = settings_problem(conf)
+    if problem is not None:
+        showInfo(problem)
+        SettingsWindow.open()
+        return 0
+    model = col.models.by_name(conf['model'])
+    assert model is not None
+    fields = {role: name for role, name in conf['fields'].items() if name}
+
+    deck_id = col.decks.id_for_name(conf['deck']) if conf['deck'] else None
+    if deck_id is None:
+        deck_id = col.decks.get_current_id()
+
+    n_new_cards = 0
+    n_duplicates = 0
     for word in words:
-        # create new note
-        note = Note(col, model)
-        # fill new note
-        note_set_field(note, 'japanote_kanjiField', word.kanji)
-        note_set_field(note, 'japanote_kanaField', word.kana)
-        note_set_field(note, 'japanote_furiganaField', word.furigana)
-        note_set_field(note, 'japanote_definitionField', word.definition_html())
-        note_set_field(note, 'japanote_idField', word.id)
+        note = col.new_note(model)
+        values = {
+            'kanji': word.kanji,
+            'kana': word.kana,
+            'furigana': word.furigana,
+            'definition': word.definition_html(),
+            'id': word.id,
+        }
+        for role, name in fields.items():
+            note[name] = values[role]
 
-        # check for duplicates if id field is set
-        idfield = col.conf.get('japanote_idField')
-        if idfield and word.id and find_by_id(idfield, word.id):
+        if 'id' in fields and word.id:
+            is_duplicate = find_by_id(fields['id'], word.id)
+        else:
+            is_duplicate = note.fields_check() == NoteFieldsCheckResult.DUPLICATE
+        if is_duplicate:
+            n_duplicates += 1
             continue
 
-        # NOTE: cards go to deck, unless their template has a deck override
-        col.add_note(note, deck['id'])
-        n_newcards += len(note.card_ids())
+        # NOTE: cards go to deck_id, unless their template has a deck override (see settings)
+        col.add_note(note, deck_id)
+        n_new_cards += len(note.card_ids())
 
-    if n_newcards == 0:
-        showInfo('Note already exists')
+    if n_new_cards == 0:
+        if n_duplicates:
+            showInfo('Note already exists')
     else:
-        tooltip(ngettext('{} card added.', '{} cards added.', n_newcards).format(n_newcards))
+        tooltip(ngettext('{} card added.', '{} cards added.', n_new_cards).format(n_new_cards))
+    return n_new_cards
 
 
 class WordSearchModel(QAbstractTableModel):

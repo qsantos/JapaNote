@@ -8,7 +8,7 @@ from aqt import gui_hooks, mw
 from aqt.deckbrowser import DeckBrowser, DeckBrowserContent
 from aqt.utils import showInfo
 
-from . import resources
+from . import config, resources
 from .model import add_notes, search
 from .searchwindow import SearchWindow
 from .settingswindow import SettingsWindow
@@ -31,6 +31,10 @@ def quick_add(text: str, names: bool = False) -> bool:
     text = text.strip()
     if not text:
         return False
+    if not config.get()['configured']:
+        showInfo('Please check the settings first')
+        SettingsWindow.open()
+        return False
 
     dictionary = 'names' if names else 'jmdict'
     if not resources.is_ready(dictionary):
@@ -38,14 +42,14 @@ def quick_add(text: str, names: bool = False) -> bool:
         return False
 
     words = search(text, names)
-    if not words:
-        showInfo('No word found')
-        return False
-    if len(words) > 1:
+    if len(words) == 1:
+        add_notes(words)
+        return True
+    if words:
         SearchWindow.open(text, names)
         return True
-    add_notes(words)
-    return True
+    showInfo('No name found' if names else 'No word found')
+    return False
 
 
 def render(deck_browser: DeckBrowser, content: DeckBrowserContent) -> None:  # noqa: ARG001
@@ -91,6 +95,11 @@ def on_js_message(handled: tuple[bool, Any], message: str, context: Any) -> tupl
     return handled
 
 
+def on_profile_open() -> None:
+    config.migrate()
+    resources.on_profile_open()
+
+
 def on_profile_close() -> None:
     for dictionary in resources.DICTIONARIES.values():
         dictionary.close()
@@ -99,7 +108,7 @@ def on_profile_close() -> None:
 def main() -> None:
     gui_hooks.deck_browser_will_render_content.append(render)
     gui_hooks.webview_did_receive_js_message.append(on_js_message)
-    gui_hooks.profile_did_open.append(resources.on_profile_open)
+    gui_hooks.profile_did_open.append(on_profile_open)
     gui_hooks.profile_will_close.append(on_profile_close)
 
 
