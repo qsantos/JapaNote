@@ -73,10 +73,18 @@ def check_database(path: str, format_: int) -> None:
         raise DownloadError(msg)
 
 
-def install_database(url: str, sha256: str, path: str, format_: int, progress: Progress | None = None) -> str:
+def install_database(  # noqa: PLR0913
+    url: str,
+    sha256: str,
+    path: str,
+    format_: int,
+    prepare: Callable[[str], None],
+    progress: Progress | None = None,
+) -> str:
     """Download an SQLite database compressed with xz, and return the path of the checked, uncompressed file
 
-    The caller must move the returned file to path, once the previous database is closed.
+    prepare is called with the path of the uncompressed file (e.g. to build indexes). The caller must
+    move the returned file to path, once the previous database is closed.
     """
     compressed = path + '.xz'
     new = path + '.new'
@@ -85,6 +93,7 @@ def install_database(url: str, sha256: str, path: str, format_: int, progress: P
         with lzma.open(compressed, 'rb') as src, open(new, 'wb') as dst:
             shutil.copyfileobj(src, dst)
         check_database(new, format_)
+        prepare(new)
     except BaseException:
         if os.path.exists(new):
             os.remove(new)

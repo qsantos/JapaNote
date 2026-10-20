@@ -41,8 +41,7 @@ jobs:
       - name: Test
         run: |
           pip install pytest
-          mkdir db
-          for name in jmdict names; do xz -dc dist/$name-*.sqlite.xz > db/$name.sqlite; done
+          python tools/build_dictionaries.py install dist db
           JAPANOTE_DB_DIR=db python -m pytest tests
 
       - name: Publish

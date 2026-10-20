@@ -15,7 +15,7 @@ from aqt.utils import tooltip
 
 from . import analyzer
 from .deinflect import Deinflector
-from .dictionary import FORMAT, Dictionary
+from .dictionary import FORMAT, Dictionary, create_keys
 from .download import fetch_json, install_database, user_file
 
 if TYPE_CHECKING:
@@ -110,7 +110,7 @@ def ensure(name: str, then: Callable[[], None]) -> None:
             analyzer.load()
             return None
         info = fetch_json(MANIFEST_URL)['dictionaries'][name]
-        return install_database(info['url'], info['sha256'], DICTIONARIES[name].path, FORMAT, progress)
+        return install_database(info['url'], info['sha256'], DICTIONARIES[name].path, FORMAT, create_keys, progress)
 
     def on_done(future: Future) -> None:
         _busy.discard(name)
@@ -173,7 +173,8 @@ def check_for_updates() -> None:
                 continue
             info = manifest['dictionaries'][name]
             try:
-                updated[name] = install_database(info['url'], info['sha256'], DICTIONARIES[name].path, FORMAT)
+                path = DICTIONARIES[name].path
+                updated[name] = install_database(info['url'], info['sha256'], path, FORMAT, create_keys)
             except Exception as e:  # noqa: BLE001
                 # keep the other updates; this one will be tried again on next start
                 print(f'JapaNote: could not update {name}: {e}')

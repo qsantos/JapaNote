@@ -72,6 +72,33 @@ class Word:
         return type_
 
 
+# every writing and reading of every entry, normalized (see entry_keys)
+KEY_SCHEMA = 'CREATE TABLE key (key TEXT NOT NULL, entry INTEGER NOT NULL, PRIMARY KEY (key, entry)) WITHOUT ROWID'
+
+
+def entry_keys(data: dict[str, Any]) -> set[str]:
+    return {normalize(form['t']) for form in data.get('k', []) + data['r']}
+
+
+def create_keys(path: str) -> None:
+    """Index the entries of a database by writing and reading
+
+    The index is not published with the database, since it can be built in a few seconds, but
+    would make the download a quarter to a third bigger.
+    """
+    db = sqlite3.connect(path)
+    try:
+        db.execute(KEY_SCHEMA)
+        rows = db.execute('SELECT id, data FROM entry').fetchall()
+        db.executemany(
+            'INSERT OR IGNORE INTO key VALUES (?, ?)',
+            ((key, id_) for id_, data in rows for key in entry_keys(json.loads(data))),
+        )
+        db.commit()
+    finally:
+        db.close()
+
+
 class Dictionary:
     def __init__(self, path: str, id_prefix: str, kanji_source: Dictionary | None = None) -> None:
         self.path = path

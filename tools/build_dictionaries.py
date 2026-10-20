@@ -14,6 +14,7 @@ Two databases are built:
 Usage:
     build_dictionaries.py download SOURCES_DIR
     build_dictionaries.py build SOURCES_DIR OUTPUT_DIR BASE_URL
+    build_dictionaries.py install OUTPUT_DIR DB_DIR  (decompress and index, as the add-on does)
 """
 from __future__ import annotations
 
@@ -71,8 +72,7 @@ SCHEMA = """
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT) WITHOUT ROWID;
 -- data is a JSON object (see parse_entry)
 CREATE TABLE entry (id INTEGER PRIMARY KEY, rank INTEGER NOT NULL, data TEXT NOT NULL);
--- every writing and reading of every entry, normalized (see normalize)
-CREATE TABLE key (key TEXT NOT NULL, entry INTEGER NOT NULL, PRIMARY KEY (key, entry)) WITHOUT ROWID;
+-- NOTE: the key table, indexing the entries, is built after download (see japanote/dictionary.py)
 -- segments is a JSON list of [base, reading] pairs, or [kana] for kana-only segments
 CREATE TABLE furigana (
     text TEXT NOT NULL, reading TEXT NOT NULL, segments TEXT NOT NULL, PRIMARY KEY (text, reading)
@@ -90,14 +90,6 @@ CREATE TABLE pitch (
 # priorities that make a word "common", like the (P) marker of EDICT
 COMMON_PRIORITIES = {'news1', 'ichi1', 'spec1', 'spec2', 'gai1'}
 
-
-def katakana_to_hiragana(s: str) -> str:
-    # NOTE: must match japanote/kana.py
-    return ''.join(chr(ord(c) - 0x60) if 'ァ' <= c <= 'ヶ' else c for c in s)
-
-
-def normalize(key: str) -> str:
-    return katakana_to_hiragana(key)
 
 
 def download(sources_dir: str) -> None:
@@ -128,8 +120,8 @@ def compact(d: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in d.items() if value}
 
 
-def parse_entry(entry: ET.Element) -> tuple[int, int, dict[str, Any], list[str]]:
-    """Return the id, rank, data and keys of a JMdict or JMnedict entry"""
+def parse_entry(entry: ET.Element) -> tuple[int, int, dict[str, Any]]:
+    """Return the id, rank and data of a JMdict or JMnedict entry"""
     id_ = int(entry.findtext('ent_seq') or '')
     priorities: list[str] = []
     writings = []
@@ -178,9 +170,7 @@ def parse_entry(entry: ET.Element) -> tuple[int, int, dict[str, Any], list[str]]
     else:
         rank = 100
 
-    data = compact({'k': writings, 'r': readings, 's': senses})
-    keys = {normalize(form['t']) for form in writings + readings}
-    return id_, rank, data, sorted(keys)
+    return id_, rank, compact({'k': writings, 'r': readings, 's': senses})
 
 
 def parse_furigana(path: str) -> Iterator[tuple[str, str, str]]:
@@ -238,12 +228,13 @@ def is_classified(data: dict[str, Any]) -> bool:
     return any(pos != 'unclass' for sense in data['s'] for pos in sense.get('pos', []))
 
 
-def load_furigana_module() -> types.ModuleType:
-    """Import japanote.furigana, without the package's __init__, which needs Anki"""
-    package = types.ModuleType('japanote')
-    package.__path__ = [os.path.join(os.path.dirname(__file__), '..', 'japanote')]
-    sys.modules['japanote'] = package
-    return importlib.import_module('japanote.furigana')
+def load_module(name: str) -> types.ModuleType:
+    """Import a module of the add-on, without the package's __init__, which needs Anki"""
+    if 'japanote' not in sys.modules:
+        package = types.ModuleType('japanote')
+        package.__path__ = [os.path.join(os.path.dirname(__file__), '..', 'japanote')]
+        sys.modules['japanote'] = package
+    return importlib.import_module(f'japanote.{name}')
 
 
 def furigana_differ(kanjidic: Iterable[tuple[str, str]]) -> Callable[[str, str, str], bool]:
@@ -252,7 +243,7 @@ def furigana_differ(kanjidic: Iterable[tuple[str, str]]) -> Callable[[str, str, 
     Most of the furigana of names can be guessed from the readings of their kanji, so they need
     not be stored (they are about a third of the database).
     """
-    furigana = load_furigana_module()
+    furigana = load_module('furigana')
     readings = {
         literal: furigana.kanji_readings_from_kanjidic(json.loads(kanji_readings))
         for literal, kanji_readings in kanjidic
@@ -281,14 +272,13 @@ def build_database(  # noqa: PLR0913
     db.executescript(SCHEMA)
     root = read_xml(entries_path)
     for entry in root.iter('entry'):
-        id_, rank, data, keys = parse_entry(entry)
+        id_, rank, data = parse_entry(entry)
         if keep_entry is not None and not keep_entry(data):
             continue
         db.execute(
             'INSERT INTO entry VALUES (?, ?, ?)',
             (id_, rank, json.dumps(data, ensure_ascii=False, separators=(',', ':'))),
         )
-        db.executemany('INSERT INTO key VALUES (?, ?)', ((key, id_) for key in keys))
     db.executemany(
         'INSERT OR IGNORE INTO furigana VALUES (?, ?, ?)',
         (row for row in parse_furigana(furigana_path) if keep_furigana is None or keep_furigana(*row)),
@@ -354,6 +344,21 @@ def build(sources_dir: str, output_dir: str, base_url: str) -> None:
         json.dump(manifest, f, indent=4)
 
 
+def install(output_dir: str, db_dir: str) -> None:
+    """Decompress the built databases, and index them as the add-on does (for development and tests)"""
+    dictionary = load_module('dictionary')
+    os.makedirs(db_dir, exist_ok=True)
+    for filename in os.listdir(output_dir):
+        if filename.endswith('.sqlite.xz'):
+            path = os.path.join(db_dir, filename.split('-')[0] + '.sqlite')
+            if os.path.exists(path):
+                os.remove(path)
+            with lzma.open(os.path.join(output_dir, filename)) as src, open(path, 'wb') as dst:
+                shutil.copyfileobj(src, dst)
+            dictionary.create_keys(path)
+            print(f'Installed {path}')
+
+
 def main() -> None:
     command, *args = sys.argv[1:] or ['']
     if command == 'download' and len(args) == len(['SOURCES_DIR']):
@@ -361,6 +366,8 @@ def main() -> None:
     elif command == 'build' and len(args) == len(['SOURCES_DIR', 'OUTPUT_DIR', 'BASE_URL']):
         sources_dir, output_dir, base_url = args
         build(sources_dir, output_dir, base_url.rstrip('/'))
+    elif command == 'install' and len(args) == len(['OUTPUT_DIR', 'DB_DIR']):
+        install(*args)
     else:
         sys.exit(__doc__)
 
