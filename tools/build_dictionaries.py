@@ -5,11 +5,11 @@ The add-on does not parse any dictionary at runtime; instead, this script turns 
 dictionaries into SQLite databases that are ready to query, and that are published as release
 assets (see .github/workflows/dictionaries.yml).
 
-Two databases are built:
+Two databases are built, both with only the furigana that the add-on would not guess by itself:
 - jmdict: JMdict (vocabulary), JmdictFurigana, KANJIDIC2 (kanji readings, for furigana), JLPT levels
   from Jonathan Waller's lists (with JMdict IDs from yomitan-jlpt-vocab), pitch accents from Kanjium;
-- names: JMnedict (proper nouns), without the unclassified ones, and the furigana of JmnedictFurigana
-  that the add-on would not find by itself; it is optional and downloaded on first use.
+- names: JMnedict (proper nouns), without the unclassified ones, JmnedictFurigana; it is optional and
+  downloaded on first use.
 
 Usage:
     build_dictionaries.py download SOURCES_DIR
@@ -240,8 +240,8 @@ def load_module(name: str) -> types.ModuleType:
 def furigana_differ(kanjidic: Iterable[tuple[str, str]]) -> Callable[[str, str, str], bool]:
     """Return whether the known furigana of a text differ from those the add-on would guess
 
-    Most of the furigana of names can be guessed from the readings of their kanji, so they need
-    not be stored (they are about a third of the database).
+    Most furigana can be guessed from the readings of the kanji (94% for JMdict, 97% for JMnedict),
+    so they need not be stored.
     """
     furigana = load_module('furigana')
     readings = {
@@ -323,14 +323,15 @@ def build(sources_dir: str, output_dir: str, base_url: str) -> None:
         'jlpt': parse_jlpt({level: source(f'jlpt-n{level}.csv') for level in range(1, 6)}),
         'pitch': parse_accents(source('accents.txt')),
     }
-    databases: list[tuple[str, str, str, Mapping[str, Iterable[tuple[Any, ...]]], Any, Any]] = [
-        ('jmdict', 'JMdict_e.gz', 'JmdictFurigana.json', jmdict_tables, None, None),
-        ('names', 'JMnedict.xml.gz', 'JmnedictFurigana.json', {}, is_classified, furigana_differ(kanjidic)),
+    differ = furigana_differ(kanjidic)
+    databases: list[tuple[str, str, str, Mapping[str, Iterable[tuple[Any, ...]]], Any]] = [
+        ('jmdict', 'JMdict_e.gz', 'JmdictFurigana.json', jmdict_tables, None),
+        ('names', 'JMnedict.xml.gz', 'JmnedictFurigana.json', {}, is_classified),
     ]
-    for name, entries, furigana, tables, keep_entry, keep_furigana in databases:
+    for name, entries, furigana, tables, keep_entry in databases:
         print(f'Building {name}')
         path = os.path.join(output_dir, f'{name}-v{FORMAT}-{version}.sqlite')
-        build_database(path, source(entries), source(furigana), tables, version, keep_entry, keep_furigana)
+        build_database(path, source(entries), source(furigana), tables, version, keep_entry, differ)
         compressed, size, sha256 = compress(path)
         os.remove(path)
         manifest['dictionaries'][name] = {
