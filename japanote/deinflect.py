@@ -1,5 +1,6 @@
 import os.path
-from typing import Iterator, NamedTuple, Tuple
+from collections.abc import Iterator
+from typing import NamedTuple
 
 default_deinflect = os.path.join(os.path.dirname(__file__), 'deinflect.dat')
 
@@ -16,7 +17,7 @@ class Candidate(NamedTuple):
     type_: int
 
 
-SuffixToRules = dict[str, Tuple[list[Rule], 'SuffixToRules']]
+SuffixToRules = dict[str, tuple[list[Rule], 'SuffixToRules']]
 
 # deinflect.dat contains instructions to remove inflections from words
 # the first line is a header
