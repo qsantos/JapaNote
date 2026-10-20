@@ -140,14 +140,17 @@ def word_segments(
     kanji_readings: KanjiReadings,
     known_furigana: KnownFurigana | None = None,
 ) -> list[Segment]:
-    reading = katakana_to_hiragana(reading)
     if not has_kanji(text):
         return [(text, text)]
+    hiragana = katakana_to_hiragana(reading)
     if known_furigana is not None:
-        segments = known_furigana(text, reading)
-        if segments is not None:
-            return segments
-    return align(text, reading, kanji_readings)
+        # the dictionaries keep the katakana of readings (e.g. 心 read ハート), but the analyzer only
+        # gives readings in katakana
+        for candidate in dict.fromkeys([reading, hiragana]):
+            segments = known_furigana(text, candidate)
+            if segments is not None:
+                return segments
+    return align(text, hiragana, kanji_readings)
 
 
 def word_furigana(

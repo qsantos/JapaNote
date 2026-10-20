@@ -49,3 +49,7 @@ def test_tags(jmdict: Dictionary) -> None:
     word = jmdict.lookup('にわかあめ')[0]
     assert word.jlpt is None
     assert not word.common
+
+
+def test_furigana_with_katakana_reading(names: Dictionary) -> None:
+    assert names.furigana('爪哇島', 'ジャワとう') == '爪哇[ジャワ]島[とう]'
