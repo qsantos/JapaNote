@@ -30,6 +30,7 @@ EXAMPLES = {
     'furigana': '暗[あん]記[き]',
     'definition': 'memorization',
     'id': 'EntL1586910',
+    'pitch': 'あ‾んき',
 }
 
 
@@ -51,6 +52,8 @@ def credits() -> str:
         '<a href="https://github.com/Doublevil/JmdictFurigana">JmdictFurigana</a> (CC BY-SA 4.0); '
         'JLPT levels from <a href="http://www.tanos.co.uk/jlpt/">Jonathan Waller</a> (CC BY), matched by '
         '<a href="https://github.com/stephenmk/yomitan-jlpt-vocab">yomitan-jlpt-vocab</a> (CC BY-SA 4.0); '
+        'the pitch accent notation was provided by Uros O. through his free database '
+        '<a href="https://github.com/mifunetoshiro/kanjium">Kanjium</a> (CC BY-SA 4.0); '
         'sentences analyzed with <a href="https://github.com/mocobeta/janome">Janome</a> (Apache 2.0) and '
         f'the IPA dictionary.{installed}'
     )

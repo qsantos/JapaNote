@@ -7,7 +7,7 @@ assets (see .github/workflows/dictionaries.yml).
 
 Two databases are built:
 - jmdict: JMdict (vocabulary), JmdictFurigana, KANJIDIC2 (kanji readings, for furigana), JLPT levels
-  from Jonathan Waller's lists (with JMdict IDs from yomitan-jlpt-vocab);
+  from Jonathan Waller's lists (with JMdict IDs from yomitan-jlpt-vocab), pitch accents from Kanjium;
 - names: JMnedict (proper nouns), JmnedictFurigana; it is optional and downloaded on first use.
 
 Usage:
@@ -35,12 +35,14 @@ FORMAT = 1
 EDRDG = 'http://ftp.edrdg.org/pub/Nihongo'
 FURIGANA = 'https://github.com/Doublevil/JmdictFurigana/releases/latest/download'
 JLPT = 'https://raw.githubusercontent.com/stephenmk/yomitan-jlpt-vocab/main/original_data'
+KANJIUM = 'https://raw.githubusercontent.com/mifunetoshiro/kanjium/master/data/source_files/raw'
 SOURCES = {
     'JMdict_e.gz': f'{EDRDG}/JMdict_e.gz',
     'JMnedict.xml.gz': f'{EDRDG}/JMnedict.xml.gz',
     'kanjidic2.xml.gz': f'{EDRDG}/kanjidic2.xml.gz',
     'JmdictFurigana.json': f'{FURIGANA}/JmdictFurigana.json',
     'JmnedictFurigana.json': f'{FURIGANA}/JmnedictFurigana.json',
+    'accents.txt': f'{KANJIUM}/accents.txt',
     **{
         f'jlpt-n{level}.csv': f'{JLPT}/n{level}.csv'
         for level in range(1, 6)
@@ -52,7 +54,9 @@ ATTRIBUTION = (
     "Development Group (https://www.edrdg.org/), and are used in conformance with the Group's "
     'licence (CC BY-SA 4.0). Furigana from JmdictFurigana (https://github.com/Doublevil/JmdictFurigana), '
     'CC BY-SA 4.0. JLPT levels from Jonathan Waller (http://www.tanos.co.uk/jlpt/), CC BY, with JMdict IDs '
-    'from yomitan-jlpt-vocab (https://github.com/stephenmk/yomitan-jlpt-vocab), CC BY-SA 4.0.'
+    'from yomitan-jlpt-vocab (https://github.com/stephenmk/yomitan-jlpt-vocab), CC BY-SA 4.0. The pitch accent '
+    'notation was provided by Uros O. through his free database Kanjium (https://github.com/mifunetoshiro/kanjium), '
+    'CC BY-SA 4.0.'
 )
 
 SCHEMA = """
@@ -69,6 +73,10 @@ CREATE TABLE furigana (
 CREATE TABLE kanji (literal TEXT PRIMARY KEY, readings TEXT NOT NULL) WITHOUT ROWID;
 -- level is 1 for N1 to 5 for N5; these lists are unofficial
 CREATE TABLE jlpt (entry INTEGER PRIMARY KEY, level INTEGER NOT NULL);
+-- accents is the list of the positions of the accent, separated by commas (e.g. '0' for 東京 [とうきょう])
+CREATE TABLE pitch (
+    text TEXT NOT NULL, reading TEXT NOT NULL, accents TEXT NOT NULL, PRIMARY KEY (text, reading)
+) WITHOUT ROWID;
 """
 
 # priorities that make a word "common", like the (P) marker of EDICT
@@ -202,6 +210,21 @@ def parse_jlpt(paths: dict[int, str]) -> Iterator[tuple[int, int]]:
     yield from levels.items()
 
 
+def parse_accents(path: str) -> Iterator[tuple[str, str, str]]:
+    # for instance:
+    # 東京\tとうきょう\t0
+    # ああ\t\t0  (no reading for words in kana)
+    # ２つ\tふたつ\t(副)0,(名)3  (accents by part of speech)
+    pitches: dict[tuple[str, str], str] = {}
+    with open(path, encoding='utf-8') as f:
+        for line in f:
+            text, reading, accents = line.rstrip('\n').split('\t')
+            positions = dict.fromkeys(re.findall(r'[0-9]+', accents))
+            pitches.setdefault((text, reading or text), ','.join(positions))
+    for (text, reading), accents in pitches.items():
+        yield text, reading, accents
+
+
 def build_database(
     path: str,
     entries_path: str,
@@ -259,6 +282,7 @@ def build(sources_dir: str, output_dir: str, base_url: str) -> None:
     jmdict_tables: dict[str, Iterable[tuple[Any, ...]]] = {
         'kanji': parse_kanjidic(source('kanjidic2.xml.gz')),
         'jlpt': parse_jlpt({level: source(f'jlpt-n{level}.csv') for level in range(1, 6)}),
+        'pitch': parse_accents(source('accents.txt')),
     }
     for name, entries, furigana, tables in [
         ('jmdict', 'JMdict_e.gz', 'JmdictFurigana.json', jmdict_tables),

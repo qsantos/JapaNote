@@ -42,6 +42,8 @@ class Word:
     jlpt: int | None = None
     # marked as common in JMdict
     common: bool = False
+    # positions of the pitch accent (see pitch.py)
+    pitch: list[int] = field(default_factory=list)
 
     def __repr__(self) -> str:
         return f'<{self.kanji}>'
@@ -152,7 +154,12 @@ class Dictionary:
             pos=frozenset(pos for sense in data.get('s', []) for pos in sense.get('pos', [])),
             jlpt=self.jlpt(id_),
             common=any(form.get('p') for form in data.get('k', []) + data['r']),
+            pitch=self.pitch(kanji, kana),
         )
+
+    def pitch(self, text: str, reading: str) -> list[int]:
+        row = self.db.execute('SELECT accents FROM pitch WHERE text = ? AND reading = ?', (text, reading)).fetchone()
+        return [int(accent) for accent in row[0].split(',')] if row else []
 
     def jlpt(self, id_: int) -> int | None:
         row = self.db.execute('SELECT level FROM jlpt WHERE entry = ?', (id_,)).fetchone()

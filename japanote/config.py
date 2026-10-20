@@ -13,6 +13,7 @@ FIELDS = {
     'furigana': 'Put furigana in',
     'definition': 'Put definition in',
     'id': 'Put JMdict ID in',
+    'pitch': 'Put pitch accent in',
 }
 # settings of JapaNote 1 (stored in col.conf); they are copied, but kept for older versions
 OLD_KEYS = {

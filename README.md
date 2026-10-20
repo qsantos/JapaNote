@@ -54,6 +54,8 @@ The add-on must stay compatible with Python 3.9, which Anki 24.06 to 25.02 ship.
 - furigana from [JmdictFurigana](https://github.com/Doublevil/JmdictFurigana) (CC BY-SA 4.0)
 - JLPT levels from [Jonathan Waller's lists](http://www.tanos.co.uk/jlpt/) (CC BY), matched to JMdict by
   [yomitan-jlpt-vocab](https://github.com/stephenmk/yomitan-jlpt-vocab) (CC BY-SA 4.0)
+- the pitch accent notation was provided by Uros O. through his free database
+  [Kanjium](https://github.com/mifunetoshiro/kanjium) (CC BY-SA 4.0)
 - sentences are analyzed with [Janome](https://github.com/mocobeta/janome) (Apache 2.0) and the IPA dictionary
 - romaji conversion by [python-romkan](https://github.com/soimort/python-romkan), a port of Ruby/Romkan by Satoru
   Takabayashi (Ruby's licence)

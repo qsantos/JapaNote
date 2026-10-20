@@ -11,6 +11,7 @@ from aqt.utils import showInfo, tooltip
 from . import config, resources
 from .collection import get_collection
 from .dictionary import Word, search_words
+from .pitch import pitches_html
 from .settingswindow import SettingsWindow
 
 if TYPE_CHECKING:
@@ -69,6 +70,7 @@ def add_notes(words: Iterable[Word]) -> int:
             'furigana': word.furigana,
             'definition': word.definition_html(),
             'id': word.id,
+            'pitch': pitches_html(word.kana, word.pitch),
         }
         for role, name in fields.items():
             note[name] = values[role]
