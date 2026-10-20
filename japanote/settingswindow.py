@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from anki.decks import DeckId
@@ -15,7 +16,7 @@ from aqt.qt import (
     QWidget,
 )
 
-from . import config
+from . import analyzer, config, resources
 from .collection import get_collection
 from .view import window_to_front
 
@@ -28,6 +29,27 @@ EXAMPLES = {
     'definition': 'memorization',
     'id': 'EntL1586910',
 }
+
+
+def credits() -> str:
+    versions = []
+    for name, dictionary in resources.DICTIONARIES.items():
+        if os.path.exists(dictionary.path):
+            versions.append(f'{name} {dictionary.version()}')
+    if analyzer.is_installed():
+        versions.append(f'Janome {analyzer.JANOME_VERSION}')
+    installed = f'<br>Installed: {", ".join(versions)}' if versions else ''
+    return (
+        'Uses <a href="https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project">JMdict</a>, '
+        '<a href="https://www.edrdg.org/enamdict/enamdict_doc.html">JMnedict</a> and '
+        '<a href="https://www.edrdg.org/wiki/index.php/KANJIDIC_Project">KANJIDIC2</a>, '
+        'property of the <a href="https://www.edrdg.org/">Electronic Dictionary Research and Development '
+        'Group</a>, used in conformance with the Group\'s <a href="https://www.edrdg.org/edrdg/licence.html">'
+        'licence</a> (CC BY-SA 4.0); furigana from '
+        '<a href="https://github.com/Doublevil/JmdictFurigana">JmdictFurigana</a> (CC BY-SA 4.0); '
+        'sentences analyzed with <a href="https://github.com/mocobeta/janome">Janome</a> (Apache 2.0) and '
+        f'the IPA dictionary.{installed}'
+    )
 
 
 class SettingsWindow(QDialog):
@@ -84,6 +106,12 @@ class SettingsWindow(QDialog):
         self.templates_group = QGroupBox('Decks of the cards (deck override of each card type)')
         self.templates_form = QFormLayout(self.templates_group)
         layout.addWidget(self.templates_group)
+
+        credits_label = QLabel(credits())
+        credits_label.setWordWrap(True)
+        credits_label.setOpenExternalLinks(True)
+        credits_label.setStyleSheet('font-size: small')
+        layout.addWidget(credits_label)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         buttons.rejected.connect(self.close)
