@@ -1,0 +1,264 @@
+#!/usr/bin/env python3
+"""Build the dictionary databases that the add-on downloads
+
+The add-on does not parse any dictionary at runtime; instead, this script turns the original
+dictionaries into SQLite databases that are ready to query, and that are published as release
+assets (see .github/workflows/dictionaries.yml).
+
+Two databases are built:
+- jmdict: JMdict (vocabulary), JmdictFurigana, KANJIDIC2 (kanji readings, for furigana);
+- names: JMnedict (proper nouns), JmnedictFurigana; it is optional and downloaded on first use.
+
+Usage:
+    build_dictionaries.py download SOURCES_DIR
+    build_dictionaries.py build SOURCES_DIR OUTPUT_DIR BASE_URL
+"""
+import gzip
+import hashlib
+import json
+import os
+import re
+import shutil
+import sqlite3
+import sys
+import urllib.request
+import xml.etree.ElementTree as ET
+from collections.abc import Iterable, Iterator
+from datetime import datetime, timezone
+from typing import Any
+
+# NOTE: must match FORMAT in japanote/dictionary.py
+FORMAT = 1
+
+EDRDG = 'http://ftp.edrdg.org/pub/Nihongo'
+FURIGANA = 'https://github.com/Doublevil/JmdictFurigana/releases/latest/download'
+SOURCES = {
+    'JMdict_e.gz': f'{EDRDG}/JMdict_e.gz',
+    'JMnedict.xml.gz': f'{EDRDG}/JMnedict.xml.gz',
+    'kanjidic2.xml.gz': f'{EDRDG}/kanjidic2.xml.gz',
+    'JmdictFurigana.json': f'{FURIGANA}/JmdictFurigana.json',
+    'JmnedictFurigana.json': f'{FURIGANA}/JmnedictFurigana.json',
+}
+
+ATTRIBUTION = (
+    'JMdict, JMnedict and KANJIDIC2 are the property of the Electronic Dictionary Research and '
+    "Development Group (https://www.edrdg.org/), and are used in conformance with the Group's "
+    'licence (CC BY-SA 4.0). Furigana from JmdictFurigana (https://github.com/Doublevil/JmdictFurigana), '
+    'CC BY-SA 4.0.'
+)
+
+SCHEMA = """
+CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT) WITHOUT ROWID;
+-- data is a JSON object (see parse_entry)
+CREATE TABLE entry (id INTEGER PRIMARY KEY, rank INTEGER NOT NULL, data TEXT NOT NULL);
+-- every writing and reading of every entry, normalized (see normalize)
+CREATE TABLE key (key TEXT NOT NULL, entry INTEGER NOT NULL, PRIMARY KEY (key, entry)) WITHOUT ROWID;
+-- segments is a JSON list of [base, reading] pairs, or [kana] for kana-only segments
+CREATE TABLE furigana (
+    text TEXT NOT NULL, reading TEXT NOT NULL, segments TEXT NOT NULL, PRIMARY KEY (text, reading)
+) WITHOUT ROWID;
+-- readings is a JSON list of the on, kun and nanori readings, as in KANJIDIC2
+CREATE TABLE kanji (literal TEXT PRIMARY KEY, readings TEXT NOT NULL) WITHOUT ROWID;
+"""
+
+# priorities that make a word "common", like the (P) marker of EDICT
+COMMON_PRIORITIES = {'news1', 'ichi1', 'spec1', 'spec2', 'gai1'}
+
+
+def katakana_to_hiragana(s: str) -> str:
+    # NOTE: must match japanote/kana.py
+    return ''.join(chr(ord(c) - 0x60) if 'ァ' <= c <= 'ヶ' else c for c in s)
+
+
+def normalize(key: str) -> str:
+    return katakana_to_hiragana(key)
+
+
+def download(sources_dir: str) -> None:
+    os.makedirs(sources_dir, exist_ok=True)
+    for filename, url in SOURCES.items():
+        print(f'Downloading {url}')
+        path = os.path.join(sources_dir, filename)
+        with urllib.request.urlopen(url) as response, open(path + '.part', 'wb') as f:
+            shutil.copyfileobj(response, f)
+        os.replace(path + '.part', path)
+
+
+def read_xml(path: str) -> ET.Element:
+    with gzip.open(path, 'rt', encoding='utf-8') as f:
+        data = f.read()
+    # keep the names of the entities (e.g. "v5k") rather than their expansions (e.g. "Godan verb
+    # with 'ku' ending"), as the original EDICT format did
+    data = re.sub(r'&(?!(?:lt|gt|amp|quot|apos);)([\w-]+);', r'\1', data)
+    return ET.fromstring(data)
+
+
+def texts(element: ET.Element, tag: str) -> list[str]:
+    return [child.text or '' for child in element.iter(tag)]
+
+
+def compact(d: dict[str, Any]) -> dict[str, Any]:
+    """Drop empty values, to keep the database small"""
+    return {key: value for key, value in d.items() if value}
+
+
+def parse_entry(entry: ET.Element) -> tuple[int, int, dict[str, Any], list[str]]:
+    """Return the id, rank, data and keys of a JMdict or JMnedict entry"""
+    id_ = int(entry.findtext('ent_seq') or '')
+    priorities: list[str] = []
+    writings = []
+    for k_ele in entry.iter('k_ele'):
+        pri = texts(k_ele, 'ke_pri')
+        priorities.extend(pri)
+        writings.append(compact({
+            't': k_ele.findtext('keb'),
+            'i': texts(k_ele, 'ke_inf'),
+            'p': bool(COMMON_PRIORITIES.intersection(pri)),
+        }))
+    readings = []
+    for r_ele in entry.iter('r_ele'):
+        pri = texts(r_ele, 're_pri')
+        priorities.extend(pri)
+        readings.append(compact({
+            't': r_ele.findtext('reb'),
+            'i': texts(r_ele, 're_inf'),
+            'p': bool(COMMON_PRIORITIES.intersection(pri)),
+            'restr': texts(r_ele, 're_restr'),
+            'nokanji': r_ele.find('re_nokanji') is not None,
+        }))
+    senses = [
+        compact({
+            'pos': texts(sense, 'pos'),
+            'g': texts(sense, 'gloss'),
+            'misc': texts(sense, 'misc'),
+            'field': texts(sense, 'field'),
+            'info': texts(sense, 's_inf'),
+            'stagk': texts(sense, 'stagk'),
+            'stagr': texts(sense, 'stagr'),
+        })
+        for sense in entry.iter('sense')
+    ]
+    senses += [
+        compact({'pos': texts(trans, 'name_type'), 'g': texts(trans, 'trans_det')})
+        for trans in entry.iter('trans')
+    ]
+
+    # rank: lower is more common
+    if COMMON_PRIORITIES.intersection(priorities):
+        frequencies = [int(p[2:]) for p in priorities if p.startswith('nf')]
+        rank = min(frequencies, default=49)
+    elif priorities:
+        rank = 50
+    else:
+        rank = 100
+
+    data = compact({'k': writings, 'r': readings, 's': senses})
+    keys = {normalize(form['t']) for form in writings + readings}
+    return id_, rank, data, sorted(keys)
+
+
+def parse_furigana(path: str) -> Iterator[tuple[str, str, str]]:
+    with open(path, encoding='utf-8-sig') as f:
+        items = json.load(f)
+    for item in items:
+        segments = [[s['ruby'], s['rt']] if s.get('rt') else [s['ruby']] for s in item['furigana']]
+        yield item['text'], item['reading'], json.dumps(segments, ensure_ascii=False, separators=(',', ':'))
+
+
+def parse_kanjidic(path: str) -> Iterator[tuple[str, str]]:
+    root = read_xml(path)
+    for character in root.iter('character'):
+        literal = character.findtext('literal') or ''
+        readings = [
+            reading.text or ''
+            for reading in character.iter('reading')
+            if reading.get('r_type') in ('ja_on', 'ja_kun')
+        ]
+        readings += texts(character, 'nanori')
+        yield literal, json.dumps(readings, ensure_ascii=False, separators=(',', ':'))
+
+
+def build_database(
+    path: str,
+    entries_path: str,
+    furigana_path: str,
+    kanji: Iterable[tuple[str, str]],
+    version: str,
+) -> None:
+    if os.path.exists(path):
+        os.remove(path)
+    db = sqlite3.connect(path)
+    db.executescript(SCHEMA)
+    root = read_xml(entries_path)
+    for entry in root.iter('entry'):
+        id_, rank, data, keys = parse_entry(entry)
+        db.execute(
+            'INSERT INTO entry VALUES (?, ?, ?)',
+            (id_, rank, json.dumps(data, ensure_ascii=False, separators=(',', ':'))),
+        )
+        db.executemany('INSERT INTO key VALUES (?, ?)', ((key, id_) for key in keys))
+    db.executemany('INSERT OR IGNORE INTO furigana VALUES (?, ?, ?)', parse_furigana(furigana_path))
+    db.executemany('INSERT INTO kanji VALUES (?, ?)', kanji)
+    db.executemany('INSERT INTO meta VALUES (?, ?)', [
+        ('format', str(FORMAT)),
+        ('version', version),
+        ('attribution', ATTRIBUTION),
+    ])
+    db.commit()
+    db.execute('VACUUM')
+    db.close()
+
+
+def compress(path: str) -> tuple[str, int, str]:
+    """Compress path with gzip, and return the new path, its size and its SHA-256"""
+    compressed = path + '.gz'
+    with open(path, 'rb') as src, gzip.open(compressed, 'wb', compresslevel=9) as dst:
+        shutil.copyfileobj(src, dst)
+    digest = hashlib.sha256()
+    with open(compressed, 'rb') as f:
+        while chunk := f.read(1 << 16):
+            digest.update(chunk)
+    return compressed, os.path.getsize(compressed), digest.hexdigest()
+
+
+def build(sources_dir: str, output_dir: str, base_url: str) -> None:
+    os.makedirs(output_dir, exist_ok=True)
+    version = datetime.now(timezone.utc).strftime('%Y%m%d')
+
+    def source(filename: str) -> str:
+        return os.path.join(sources_dir, filename)
+
+    manifest: dict[str, Any] = {'format': FORMAT, 'version': version, 'dictionaries': {}}
+    for name, entries, furigana, kanji in [
+        ('jmdict', 'JMdict_e.gz', 'JmdictFurigana.json', parse_kanjidic(source('kanjidic2.xml.gz'))),
+        ('names', 'JMnedict.xml.gz', 'JmnedictFurigana.json', []),
+    ]:
+        print(f'Building {name}')
+        path = os.path.join(output_dir, f'{name}-v{FORMAT}-{version}.sqlite')
+        build_database(path, source(entries), source(furigana), kanji, version)
+        compressed, size, sha256 = compress(path)
+        os.remove(path)
+        manifest['dictionaries'][name] = {
+            'url': f'{base_url}/{os.path.basename(compressed)}',
+            'size': size,
+            'sha256': sha256,
+        }
+        print(f'  {compressed}: {size / 2**20:.1f} MiB')
+
+    with open(os.path.join(output_dir, f'manifest-v{FORMAT}.json'), 'w') as f:
+        json.dump(manifest, f, indent=4)
+
+
+def main() -> None:
+    command, *args = sys.argv[1:] or ['']
+    if command == 'download' and len(args) == len(['SOURCES_DIR']):
+        download(*args)
+    elif command == 'build' and len(args) == len(['SOURCES_DIR', 'OUTPUT_DIR', 'BASE_URL']):
+        sources_dir, output_dir, base_url = args
+        build(sources_dir, output_dir, base_url.rstrip('/'))
+    else:
+        sys.exit(__doc__)
+
+
+if __name__ == '__main__':
+    main()
