@@ -1,16 +1,15 @@
 from gettext import ngettext
 from typing import Iterable, Optional
 
+from anki.collection import SearchNode
 from anki.models import NotetypeDict
 from anki.notes import Note
-from aqt import Collection
 from aqt.qt import QAbstractTableModel, Qt
 from aqt.utils import showInfo, tooltip
 
-from . import romkan
+from . import resources
 from .collection import get_collection
-from .deinflect import Deinflector
-from .edict2.search import Word, edict, enamdict
+from .dictionary import Word, search_words
 from .qt import QtCore
 from .settingswindow import SettingsWindow
 
@@ -46,6 +45,17 @@ def note_set_field(note: Note, config_key: str, value: str) -> None:
             showInfo(f'Model not found')
         else:
             showInfo(f'Note type "{model["name"]}" has no field "{model_field}"')
+
+
+def find_by_id(field_name: str, word_id: str) -> bool:
+    """Whether a note already has this JMdict ID; JapaNote 1 stored IDs like EntL1358280X"""
+    col = get_collection()
+    search = col.build_search_string(
+        SearchNode(field=SearchNode.Field(field_name=field_name, text=word_id)),
+        SearchNode(field=SearchNode.Field(field_name=field_name, text=word_id + 'X')),
+        joiner='OR',
+    )
+    return bool(col.find_notes(search))
 
 
 def add_notes(words: Iterable[Word]) -> None:
@@ -97,13 +107,13 @@ def add_notes(words: Iterable[Word]) -> None:
         # fill new note
         note_set_field(note, 'japanote_kanjiField', word.kanji)
         note_set_field(note, 'japanote_kanaField', word.kana)
-        note_set_field(note, 'japanote_furiganaField', word.get_furigana())
-        note_set_field(note, 'japanote_definitionField', word.get_meanings_html())
-        note_set_field(note, 'japanote_idField', word.get_sequence_number())
+        note_set_field(note, 'japanote_furiganaField', word.furigana)
+        note_set_field(note, 'japanote_definitionField', word.definition_html())
+        note_set_field(note, 'japanote_idField', word.id)
 
         # check for duplicates if id field is set
         idfield = col.conf.get('japanote_idField')
-        if idfield and col.find_notes(f'{idfield}:{word.get_sequence_number()}'):
+        if idfield and word.id and find_by_id(idfield, word.id):
             continue
 
         # add card
@@ -150,11 +160,11 @@ class WordSearchModel(QAbstractTableModel):
             elif column == 1:
                 return word.kana
             elif column == 2:
-                return word.get_furigana()
+                return word.furigana
             elif column == 3:
-                return word.get_sequence_number()
+                return word.id
             elif column == 4:
-                return '\n'.join(word.get_meanings())
+                return '\n'.join(word.meanings)
             else:
                 raise NotImplementedError
         else:
@@ -173,18 +183,12 @@ class WordSearchModel(QAbstractTableModel):
         self.modelReset.emit()
 
     def search(self, word: str) -> None:
-        word = romkan.to_hiragana(word)
         self.modelAboutToBeReset.emit()
         if self.is_proper_noun:
-            self.words = list(enamdict.search(word))
+            self.words = search_words(resources.names, word)
         else:
-            self.words = []
-            for candidate in set(deinflector(word)):
-                for word2 in edict.search(candidate.word):
-                    if word2.get_type() & candidate.type_:
-                        self.words.append(word2)
+            self.words = search_words(resources.jmdict, word, resources.deinflector)
         self.modelReset.emit()
 
 
-deinflector = Deinflector()
 word_search = WordSearchModel()

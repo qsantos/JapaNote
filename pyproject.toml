@@ -83,6 +83,7 @@ disable_error_code = "var-annotated"
 exclude = [
     ".*_qt.\\.py*",
     "romkan.py",
+    "user_files/",
 ]
 
 

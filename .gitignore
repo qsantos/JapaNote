@@ -2,3 +2,5 @@
 *_qt5.py
 *_qt6.py
 japanote/meta.json
+japanote/user_files/
+*.ankiaddon
