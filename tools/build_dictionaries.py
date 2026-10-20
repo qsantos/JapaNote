@@ -290,6 +290,30 @@ def parse_janome(path: str) -> tuple[list[tuple[Any, ...]], list[tuple[str, Any]
     return tokens, analyzer
 
 
+# the parts of speech that the add-on uses, to deinflect words (see Word.get_type)
+USED_POS = re.compile(r'v1|v5.*|adj-i|vk|vs.*')
+
+
+def strip_unused(data: dict[str, Any]) -> dict[str, Any]:
+    """Remove what the add-on does not use from the data of an entry, to make the download smaller
+
+    That is: the usage notes, fields and other information on senses, the parts of speech other than
+    those of verbs and adjectives (including the types of names), and the information on writings and
+    readings other than whether they are only used for searching.
+    """
+    for form in data.get('k', []) + data['r']:
+        tags = [tag for tag in form.pop('i', []) if tag in ('sK', 'sk')]
+        if tags:
+            form['i'] = tags
+    for sense in data['s']:
+        for key in ('misc', 'field', 'info'):
+            sense.pop(key, None)
+        pos = [pos for pos in sense.pop('pos', []) if USED_POS.fullmatch(pos)]
+        if pos:
+            sense['pos'] = pos
+    return data
+
+
 def is_classified(data: dict[str, Any]) -> bool:
     """Whether a name has a type (e.g. surname, place), unlike the vaguest ones"""
     return any(pos != 'unclass' for sense in data['s'] for pos in sense.get('pos', []))
@@ -342,6 +366,7 @@ def build_database(  # noqa: PLR0913
         id_, rank, data = parse_entry(entry)
         if keep_entry is not None and not keep_entry(data):
             continue
+        strip_unused(data)
         db.execute(
             'INSERT INTO entry VALUES (?, ?, ?)',
             (id_, rank, json.dumps(data, ensure_ascii=False, separators=(',', ':'))),
