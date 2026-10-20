@@ -96,7 +96,10 @@ def ensure(name: str, then: Callable[[], None]) -> None:
         return
     _busy.add(name)
     label = LABELS[name]
-    set_status(f'Downloading {label}…')
+    if name == 'analyzer' and analyzer.is_installed():
+        set_status('Loading the sentence analyzer…')
+    else:
+        set_status(f'Downloading {label}…')
 
     def task() -> str | None:
         progress = _progress_reporter(label)
