@@ -18,7 +18,7 @@ from aqt.qt import (
     QWidget,
 )
 
-from . import analyzer, config, resources
+from . import config, resources
 from .collection import get_collection
 from .view import window_to_front
 
@@ -40,8 +40,6 @@ def credits() -> str:
     for name, dictionary in resources.DICTIONARIES.items():
         if os.path.exists(dictionary.path):
             versions.append(f'{name} {dictionary.version()}')
-    if analyzer.is_installed():
-        versions.append(f'Janome {analyzer.JANOME_VERSION}')
     installed = f'<br>Installed: {", ".join(versions)}' if versions else ''
     return (
         'Uses <a href="https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project">JMdict</a>, '
@@ -57,8 +55,8 @@ def credits() -> str:
         '<a href="https://github.com/mifunetoshiro/kanjium">Kanjium</a> (CC BY-SA 4.0); '
         'technical words from <a href="https://ja.wikipedia.org/">Wikipedia</a> (CC BY-SA 4.0); '
         'recordings from <a href="https://lingualibre.org/">Lingua Libre</a> (mostly CC BY-SA 4.0); '
-        'sentences analyzed with <a href="https://github.com/mocobeta/janome">Janome</a> (Apache 2.0) and '
-        f'the IPA dictionary.{installed}'
+        'sentences analyzed with the IPA dictionary (© Nara Institute of Science and Technology), as compiled '
+        f'by <a href="https://github.com/mocobeta/janome">Janome</a> (Apache 2.0).{installed}'
     )
 
 

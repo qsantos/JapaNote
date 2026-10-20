@@ -8,6 +8,7 @@ from html import escape
 from typing import TYPE_CHECKING, Any
 
 from . import romkan
+from .analyzer import Analyzer
 from .furigana import (
     Segment,
     format_furigana,
@@ -19,7 +20,6 @@ from .furigana import (
 from .kana import normalize
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
 
     from .deinflect import Deinflector
 
@@ -80,14 +80,15 @@ def entry_keys(data: dict[str, Any]) -> set[str]:
     return {normalize(form['t']) for form in data.get('k', []) + data['r']}
 
 
-def create_keys(path: str) -> None:
-    """Index the entries of a database by writing and reading
+def create_indexes(path: str) -> None:
+    """Index the entries of a database by writing and reading, and the words of the analyzer
 
-    The index is not published with the database, since it can be built in a few seconds, but
+    The indexes are not published with the database, since they can be built in a few seconds, but
     would make the download a quarter to a third bigger.
     """
     db = sqlite3.connect(path)
     try:
+        db.execute('CREATE INDEX token_surface ON token (surface)')
         db.execute(KEY_SCHEMA)
         rows = db.execute('SELECT id, data FROM entry').fetchall()
         db.executemany(
@@ -107,6 +108,7 @@ class Dictionary:
         self.kanji_source = kanji_source or self
         self._db: sqlite3.Connection | None = None
         self._kanji_readings: dict[str, list[str]] = {}
+        self._analyzer: Analyzer | None = None
 
     @property
     def db(self) -> sqlite3.Connection:
@@ -114,7 +116,15 @@ class Dictionary:
             self._db = sqlite3.connect(f'file:{self.path}?mode=ro', uri=True)
         return self._db
 
+    @property
+    def analyzer(self) -> Analyzer:
+        """The sentence analyzer, whose data is in the main dictionary"""
+        if self._analyzer is None:
+            self._analyzer = Analyzer(self.db)
+        return self._analyzer
+
     def close(self) -> None:
+        self._analyzer = None
         if self._db is not None:
             self._db.close()
             self._db = None
@@ -208,11 +218,8 @@ def search_words(dictionary: Dictionary, text: str, deinflector: Deinflector | N
     return list(words.values())
 
 
-def sentence_word(
-    dictionary: Dictionary,
-    text: str,
-    tokens: Iterable[tuple[str, str | None]],
-) -> Word:
-    """A Word for text that is not in the dictionary, from its tokens (see analyzer.py)"""
+def sentence_word(dictionary: Dictionary, text: str) -> Word:
+    """A Word for text that is not in the dictionary, from its words (see analyzer.py)"""
+    tokens = dictionary.analyzer.tokenize(text)
     segments = sentence_segments(tokens, dictionary.kanji_readings, dictionary.known_furigana)
     return Word(kanji=text, kana=reading_of(segments), furigana=format_furigana(segments))

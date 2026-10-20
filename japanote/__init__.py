@@ -7,7 +7,7 @@ from aqt import gui_hooks, mw
 from aqt.deckbrowser import DeckBrowser, DeckBrowserContent
 from aqt.utils import showInfo
 
-from . import analyzer, config, resources, wikipedia
+from . import config, resources, wikipedia
 from .dictionary import Word, sentence_word
 from .model import add_notes, search_names, search_vocabulary
 from .previewwindow import PreviewWindow
@@ -92,13 +92,7 @@ def add_unknown(text: str, article: wikipedia.Article | None) -> bool:
         word = Word(text, article.reading, resources.jmdict.furigana(text, article.reading))
     else:
         # e.g. a sentence: guess the furigana
-        if not resources.is_ready('analyzer'):
-            def then() -> None:
-                if add_unknown(text, article):
-                    clear_input()
-            resources.ensure('analyzer', then)
-            return False
-        word = sentence_word(resources.jmdict, text, analyzer.tokenize(text))
+        word = sentence_word(resources.jmdict, text)
 
     if article is None:
         message = 'Not found in the dictionary; please check the furigana.'

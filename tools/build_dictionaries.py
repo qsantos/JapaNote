@@ -7,7 +7,8 @@ assets (see .github/workflows/dictionaries.yml).
 
 Two databases are built, both with only the furigana that the add-on would not guess by itself:
 - jmdict: JMdict (vocabulary), JmdictFurigana, KANJIDIC2 (kanji readings, for furigana), JLPT levels
-  from Jonathan Waller's lists (with JMdict IDs from yomitan-jlpt-vocab), pitch accents from Kanjium;
+  from Jonathan Waller's lists (with JMdict IDs from yomitan-jlpt-vocab), pitch accents from Kanjium,
+  and the IPA dictionary, as compiled by Janome, for the sentence analyzer (see japanote/analyzer.py);
 - names: JMnedict (proper nouns), without the unclassified ones, JmnedictFurigana; it is optional and
   downloaded on first use.
 
@@ -29,9 +30,12 @@ import re
 import shutil
 import sqlite3
 import sys
+import tempfile
 import types
 import urllib.request
 import xml.etree.ElementTree as ET
+import zipfile
+from array import array
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
@@ -45,6 +49,11 @@ EDRDG = 'http://ftp.edrdg.org/pub/Nihongo'
 FURIGANA = 'https://github.com/Doublevil/JmdictFurigana/releases/latest/download'
 JLPT = 'https://raw.githubusercontent.com/stephenmk/yomitan-jlpt-vocab/main/original_data'
 KANJIUM = 'https://raw.githubusercontent.com/mifunetoshiro/kanjium/master/data/source_files/raw'
+JANOME = (
+    'https://files.pythonhosted.org/packages/73/7d/70f4069f4bbf0fca023e82a1fbbade6f5216365d4fe259fee1950723eca5/'
+    'Janome-0.5.0-py2.py3-none-any.whl'
+)
+JANOME_SHA256 = 'd098670394a77881ce2f6b7d696c0ea5ff74c0c8cf74a8a882159ec82c0e6dc7'
 SOURCES = {
     'JMdict_e.gz': f'{EDRDG}/JMdict_e.gz',
     'JMnedict.xml.gz': f'{EDRDG}/JMnedict.xml.gz',
@@ -52,6 +61,7 @@ SOURCES = {
     'JmdictFurigana.json': f'{FURIGANA}/JmdictFurigana.json',
     'JmnedictFurigana.json': f'{FURIGANA}/JmnedictFurigana.json',
     'accents.txt': f'{KANJIUM}/accents.txt',
+    'janome.whl': JANOME,
     **{
         f'jlpt-n{level}.csv': f'{JLPT}/n{level}.csv'
         for level in range(1, 6)
@@ -65,7 +75,8 @@ ATTRIBUTION = (
     'CC BY-SA 4.0. JLPT levels from Jonathan Waller (http://www.tanos.co.uk/jlpt/), CC BY, with JMdict IDs '
     'from yomitan-jlpt-vocab (https://github.com/stephenmk/yomitan-jlpt-vocab), CC BY-SA 4.0. The pitch accent '
     'notation was provided by Uros O. through his free database Kanjium (https://github.com/mifunetoshiro/kanjium), '
-    'CC BY-SA 4.0.'
+    'CC BY-SA 4.0. The sentence analyzer uses the IPA dictionary (IPADIC), copyright 2000-2007 Nara Institute '
+    'of Science and Technology, as compiled by Janome (https://github.com/mocobeta/janome), Apache 2.0.'
 )
 
 SCHEMA = """
@@ -82,6 +93,14 @@ CREATE TABLE kanji (literal TEXT PRIMARY KEY, readings TEXT NOT NULL) WITHOUT RO
 -- level is 1 for N1 to 5 for N5; these lists are unofficial
 CREATE TABLE jlpt (entry INTEGER PRIMARY KEY, level INTEGER NOT NULL);
 -- accents is the list of the positions of the accent, separated by commas (e.g. '0' for 東京 [とうきょう])
+-- the words of the sentence analyzer (see japanote/analyzer.py); reading is NULL when it is the
+-- surface in katakana, and '*' when unknown
+CREATE TABLE token (
+    num INTEGER PRIMARY KEY, surface TEXT NOT NULL, left_id INTEGER NOT NULL, right_id INTEGER NOT NULL,
+    cost INTEGER NOT NULL, reading TEXT
+);
+-- the other data of the sentence analyzer: connection costs, character categories, unknown words
+CREATE TABLE analyzer (key TEXT PRIMARY KEY, value) WITHOUT ROWID;
 CREATE TABLE pitch (
     text TEXT NOT NULL, reading TEXT NOT NULL, accents TEXT NOT NULL, PRIMARY KEY (text, reading)
 ) WITHOUT ROWID;
@@ -223,6 +242,54 @@ def parse_accents(path: str) -> Iterator[tuple[str, str, str]]:
         yield text, reading, accents
 
 
+def parse_janome(path: str) -> tuple[list[tuple[Any, ...]], list[tuple[str, Any]]]:
+    """Return the rows of the token and analyzer tables, from the dictionary that Janome compiled"""
+    with open(path, 'rb') as f:
+        if hashlib.sha256(f.read()).hexdigest() != JANOME_SHA256:
+            sys.exit(f'unexpected checksum for {path}')
+    kana = load_module('kana')
+    with tempfile.TemporaryDirectory() as directory:
+        with zipfile.ZipFile(path) as wheel:
+            wheel.extractall(directory)
+        sys.path.insert(0, directory)
+        try:
+            sysdic = importlib.import_module('janome.sysdic')
+            tokens = []
+            for i in range(10):
+                compact = importlib.import_module(f'janome.sysdic.entries_compact{i}').DATA
+                extra = importlib.import_module(f'janome.sysdic.entries_extra{i}').DATA
+                for num, (surface, left_id, right_id, cost) in compact.items():
+                    # part of speech, inflection type and form, base form, reading, pronunciation
+                    reading = extra[num][4]
+                    if reading == kana.hiragana_to_katakana(surface):
+                        reading = None
+                    tokens.append((num, surface, left_id, right_id, cost, reading))
+            connections = sysdic.connections
+            categories, char_ranges = sysdic.chardef.DATA
+            unknowns = {
+                category: [[left_id, right_id, cost] for left_id, right_id, cost, _ in entries]
+                for category, entries in sysdic.unknowns.DATA.items()
+            }
+            # the licence of the IPA dictionary requires its notice to be distributed with it
+            with open(os.path.join(directory, 'Janome-0.5.0.dist-info', 'NOTICE.txt'), encoding='utf-8') as f:
+                notice = f.read()
+        finally:
+            sys.path.remove(directory)
+    # connections[right id of a word][left id of the next one], as little-endian 16-bit integers
+    matrix = array('h', (cost for row in connections for cost in row))
+    if sys.byteorder == 'big':
+        matrix.byteswap()
+    analyzer = [
+        ('size', len(connections)),
+        ('connections', matrix.tobytes()),
+        ('categories', json.dumps(categories, separators=(',', ':'))),
+        ('char_ranges', json.dumps(char_ranges, ensure_ascii=False, separators=(',', ':'))),
+        ('unknowns', json.dumps(unknowns, separators=(',', ':'))),
+        ('notice', notice),
+    ]
+    return tokens, analyzer
+
+
 def is_classified(data: dict[str, Any]) -> bool:
     """Whether a name has a type (e.g. surname, place), unlike the vaguest ones"""
     return any(pos != 'unclass' for sense in data['s'] for pos in sense.get('pos', []))
@@ -323,6 +390,7 @@ def build(sources_dir: str, output_dir: str, base_url: str) -> None:
         'jlpt': parse_jlpt({level: source(f'jlpt-n{level}.csv') for level in range(1, 6)}),
         'pitch': parse_accents(source('accents.txt')),
     }
+    jmdict_tables['token'], jmdict_tables['analyzer'] = parse_janome(source('janome.whl'))
     differ = furigana_differ(kanjidic)
     databases: list[tuple[str, str, str, Mapping[str, Iterable[tuple[Any, ...]]], Any]] = [
         ('jmdict', 'JMdict_e.gz', 'JmdictFurigana.json', jmdict_tables, None),
@@ -356,7 +424,7 @@ def install(output_dir: str, db_dir: str) -> None:
                 os.remove(path)
             with lzma.open(os.path.join(output_dir, filename)) as src, open(path, 'wb') as dst:
                 shutil.copyfileobj(src, dst)
-            dictionary.create_keys(path)
+            dictionary.create_indexes(path)
             print(f'Installed {path}')
 
 

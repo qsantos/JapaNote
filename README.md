@@ -14,8 +14,8 @@ and `common` for common words.
 
 ## Dictionaries
 
-The add-on does not ship any dictionary. On first start, it downloads the main dictionary (about 8 MB); the names
-dictionary (about 9 MB) and the sentence analyzer (about 20 MB) are downloaded the first time they are needed. The
+The add-on does not ship any dictionary. On first start, it downloads the main dictionary (about 13 MB, including the
+data of the sentence analyzer); the names dictionary (about 9 MB) is downloaded the first time it is needed. The
 dictionaries are then updated in the background, at most once a day. Everything is stored in the add-on's
 `user_files` folder.
 
@@ -65,6 +65,8 @@ The add-on must stay compatible with Python 3.9, which Anki 24.06 to 25.02 ship.
 - readings and translations of technical words from [Wikipedia](https://ja.wikipedia.org/) (CC BY-SA 4.0)
 - recordings from [Lingua Libre](https://lingualibre.org/), hosted on Wikimedia Commons (mostly CC BY-SA 4.0; the
   name of the speaker is kept in the name of the file)
-- sentences are analyzed with [Janome](https://github.com/mocobeta/janome) (Apache 2.0) and the IPA dictionary
+- sentences are analyzed with the IPA dictionary (© Nara Institute of Science and Technology), as compiled by
+  [Janome](https://github.com/mocobeta/janome) (Apache 2.0), whose algorithm is reproduced in `japanote/analyzer.py`
+  (see [NOTICE-IPADIC.txt](NOTICE-IPADIC.txt))
 - romaji conversion by [python-romkan](https://github.com/soimort/python-romkan), a port of Ruby/Romkan by Satoru
   Takabayashi (Ruby's licence)

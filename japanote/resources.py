@@ -1,21 +1,23 @@
-"""Make the dictionaries and the analyzer available, downloading and updating them in the background
+"""Make the dictionaries available, downloading and updating them in the background
 
 The dictionaries are built and published by .github/workflows/dictionaries.yml. The main dictionary
-is downloaded as soon as Anki starts; the names dictionary and the analyzer, only when first needed.
+(which also holds the data of the sentence analyzer) is downloaded as soon as Anki starts; the names
+dictionary, only when first needed.
 """
 from __future__ import annotations
 
+import glob
 import json
 import os
+import shutil
 import time
 from typing import TYPE_CHECKING, Any
 
 from aqt import mw
 from aqt.utils import tooltip
 
-from . import analyzer
 from .deinflect import Deinflector
-from .dictionary import FORMAT, Dictionary, create_keys
+from .dictionary import FORMAT, Dictionary, create_indexes
 from .download import fetch_json, install_database, user_file
 
 if TYPE_CHECKING:
@@ -36,9 +38,8 @@ deinflector = Deinflector()
 
 DICTIONARIES = {'jmdict': jmdict, 'names': names}
 LABELS = {
-    'jmdict': 'the dictionary (about 8 MB)',
+    'jmdict': 'the dictionary (about 13 MB)',
     'names': 'the names dictionary (about 9 MB)',
-    'analyzer': 'the sentence analyzer (about 20 MB)',
 }
 
 _busy: set[str] = set()
@@ -81,8 +82,6 @@ def _progress_reporter(label: str) -> Callable[[int, int], None]:
 
 
 def is_ready(name: str) -> bool:
-    if name == 'analyzer':
-        return analyzer.is_loaded()
     return os.path.exists(DICTIONARIES[name].path)
 
 
@@ -96,21 +95,12 @@ def ensure(name: str, then: Callable[[], None]) -> None:
         return
     _busy.add(name)
     label = LABELS[name]
-    if name == 'analyzer' and analyzer.is_installed():
-        set_status('Loading the sentence analyzer…')
-    else:
-        set_status(f'Downloading {label}…')
+    set_status(f'Downloading {label}…')
 
-    def task() -> str | None:
+    def task() -> str:
         progress = _progress_reporter(label)
-        if name == 'analyzer':
-            if not analyzer.is_installed():
-                analyzer.install(progress)
-            mw.taskman.run_on_main(lambda: set_status('Loading the sentence analyzer…'))
-            analyzer.load()
-            return None
         info = fetch_json(MANIFEST_URL)['dictionaries'][name]
-        return install_database(info['url'], info['sha256'], DICTIONARIES[name].path, FORMAT, create_keys, progress)
+        return install_database(info['url'], info['sha256'], DICTIONARIES[name].path, FORMAT, create_indexes, progress)
 
     def on_done(future: Future) -> None:
         _busy.discard(name)
@@ -120,10 +110,9 @@ def ensure(name: str, then: Callable[[], None]) -> None:
             _pending.pop(name, None)
             set_status(f'Could not download {label}: {e}')
             return
-        if new is not None:
-            dictionary = DICTIONARIES[name]
-            dictionary.close()
-            os.replace(new, dictionary.path)
+        dictionary = DICTIONARIES[name]
+        dictionary.close()
+        os.replace(new, dictionary.path)
         set_status('')
         callback = _pending.pop(name, None)
         if callback is not None:
@@ -174,7 +163,7 @@ def check_for_updates() -> None:
             info = manifest['dictionaries'][name]
             try:
                 path = DICTIONARIES[name].path
-                updated[name] = install_database(info['url'], info['sha256'], path, FORMAT, create_keys)
+                updated[name] = install_database(info['url'], info['sha256'], path, FORMAT, create_indexes)
             except Exception as e:  # noqa: BLE001
                 # keep the other updates; this one will be tried again on next start
                 print(f'JapaNote: could not update {name}: {e}')
@@ -203,12 +192,15 @@ def check_for_updates() -> None:
 
 
 def clean_up() -> None:
-    """Remove files left by interrupted downloads"""
+    """Remove files left by interrupted downloads, and by previous versions"""
     for dictionary in DICTIONARIES.values():
         for suffix in ('.new', '.xz', '.xz.part'):
             path = dictionary.path + suffix
             if os.path.exists(path):
                 os.remove(path)
+    # Janome, which was the sentence analyzer before its data was moved to the main dictionary
+    for path in glob.glob(user_file('janome-*')):
+        shutil.rmtree(path, ignore_errors=True)
 
 
 def on_profile_open() -> None:
