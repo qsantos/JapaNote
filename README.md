@@ -6,6 +6,11 @@ When no word matches, it looks for a proper noun; and for text that is in neithe
 guesses the furigana and lets you check them before adding the note. To browse the results without adding anything,
 including proper nouns that are also common words, use the Search button.
 
+Optionally, notes can also get the pitch accent of the word, and a recording by a native speaker from
+[Lingua Libre](https://lingualibre.org/) when there is one (it is fetched in the background, and added to the note a
+few seconds later). New notes are tagged `japanote` by default, as well as with their JLPT level (e.g. `JLPT::N3`)
+and `common` for common words.
+
 ## Dictionaries
 
 The add-on does not ship any dictionary. On first start, it downloads the main dictionary (about 20 MB); the names
@@ -56,6 +61,8 @@ The add-on must stay compatible with Python 3.9, which Anki 24.06 to 25.02 ship.
   [yomitan-jlpt-vocab](https://github.com/stephenmk/yomitan-jlpt-vocab) (CC BY-SA 4.0)
 - the pitch accent notation was provided by Uros O. through his free database
   [Kanjium](https://github.com/mifunetoshiro/kanjium) (CC BY-SA 4.0)
+- recordings from [Lingua Libre](https://lingualibre.org/), hosted on Wikimedia Commons (mostly CC BY-SA 4.0; the
+  name of the speaker is kept in the name of the file)
 - sentences are analyzed with [Janome](https://github.com/mocobeta/janome) (Apache 2.0) and the IPA dictionary
 - romaji conversion by [python-romkan](https://github.com/soimort/python-romkan), a port of Ruby/Romkan by Satoru
   Takabayashi (Ruby's licence)

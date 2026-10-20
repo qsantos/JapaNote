@@ -31,6 +31,7 @@ EXAMPLES = {
     'definition': 'memorization',
     'id': 'EntL1586910',
     'pitch': 'あ‾んき',
+    'audio': '[sound:…] (when available)',
 }
 
 
@@ -54,6 +55,7 @@ def credits() -> str:
         '<a href="https://github.com/stephenmk/yomitan-jlpt-vocab">yomitan-jlpt-vocab</a> (CC BY-SA 4.0); '
         'the pitch accent notation was provided by Uros O. through his free database '
         '<a href="https://github.com/mifunetoshiro/kanjium">Kanjium</a> (CC BY-SA 4.0); '
+        'recordings from <a href="https://lingualibre.org/">Lingua Libre</a> (mostly CC BY-SA 4.0); '
         'sentences analyzed with <a href="https://github.com/mocobeta/janome">Janome</a> (Apache 2.0) and '
         f'the IPA dictionary.{installed}'
     )
