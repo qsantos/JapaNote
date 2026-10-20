@@ -9,7 +9,7 @@ from aqt.utils import showInfo, tooltip
 
 from . import romkan
 from .collection import get_collection
-from .edict2.deinflect import Deinflector
+from .deinflect import Deinflector
 from .edict2.search import Word, edict, enamdict
 from .qt import QtCore
 from .settingswindow import SettingsWindow
