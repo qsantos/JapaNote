@@ -1,120 +1,95 @@
-import json
-from typing import Callable, TypeVar
+from __future__ import annotations
 
-from anki.hooks import wrap
+import json
+from html import escape
+from typing import Any
+
 from aqt import gui_hooks, mw
-from aqt.deckbrowser import DeckBrowser
-from aqt.qt import QObject, pyqtSlot
+from aqt.deckbrowser import DeckBrowser, DeckBrowserContent
 from aqt.utils import showInfo
 
 from . import resources
 from .model import add_notes, word_search
 from .searchwindow import SearchWindow
 from .settingswindow import SettingsWindow
-from .view import refresh_deckBrowser
-
-
-T = TypeVar('T')
 
 
 def clear_input() -> None:
     assert mw is not None
     if mw.state == 'deckBrowser':
-        mw.deckBrowser.web.eval('document.getElementById("quick-add-pattern").value = "";')
+        mw.deckBrowser.web.eval('document.getElementById("japanote-input").value = "";')
 
 
-def retry(pattern: str, is_proper_noun: bool) -> None:
+def retry(text: str, names: bool) -> None:
     """Try again once a download is done, clearing the input field if it worked"""
-    if bridge.quickAdd(pattern, is_proper_noun):
+    if quick_add(text, names):
         clear_input()
 
 
-class JavaScriptBridge(QObject):
-    @pyqtSlot(str, result=bool)
-    @pyqtSlot(str, bool, result=bool)
-    def quickAdd(self, pattern: str, is_proper_noun: bool = False) -> bool:
-        pattern = pattern.strip()
-        if not pattern:
-            return False
-        dictionary = 'names' if is_proper_noun else 'jmdict'
-        if not resources.is_ready(dictionary):
-            resources.ensure(dictionary, lambda: retry(pattern, is_proper_noun))
-            return False
-        word_search.is_proper_noun = is_proper_noun
-        word_search.search(pattern)
-        if not word_search.words:
-            showInfo('No word found')
-            return False
-        elif len(word_search.words) > 1:
-            SearchWindow.open(pattern)
-            return True
-        else:
-            add_notes(word_search.words)
-            return True
+def quick_add(text: str, names: bool = False) -> bool:
+    """Add a note for text, or open a window to do so; return whether the input field can be cleared"""
+    text = text.strip()
+    if not text:
+        return False
 
-    @pyqtSlot()
-    def showSettings(self) -> None:
-        SettingsWindow.open()
+    dictionary = 'names' if names else 'jmdict'
+    if not resources.is_ready(dictionary):
+        resources.ensure(dictionary, lambda: retry(text, names))
+        return False
+
+    word_search.is_proper_noun = names
+    word_search.search(text)
+    if not word_search.words:
+        showInfo('No word found')
+        return False
+    if len(word_search.words) > 1:
+        SearchWindow.open(text)
+        return True
+    add_notes(word_search.words)
+    return True
 
 
-bridge = JavaScriptBridge()
-
-
-def render(self: DeckBrowser, _old: Callable[[DeckBrowser], str]) -> str:
-    status = json.dumps(resources.status())
-    return _old(self) + """
+def render(deck_browser: DeckBrowser, content: DeckBrowserContent) -> None:  # noqa: ARG001
+    content.stats += f"""
     <fieldset style="width:500px; margin:30px 0 30px 0">
         <legend>JapaNote: create a note for a Japanese word</legend>
-        <input style="height:2em; box-sizing:border-box; width:100%; margin:5px; padding:5px;" type="text" id="quick-add-pattern" placeholder="あんき">
-        <button onclick="quickAddWord()" style="border:2px solid black">Add Word</button>
-        <button onclick="quickAddNoun()">Add Proper Noun</button>
-        <button onclick="edict.showSettings()">Settings</button>
-        <div id="japanote-status" style="margin-top:5px; color:gray"></div>
+        <input style="height:2em; box-sizing:border-box; width:100%; margin:5px 0; padding:5px;"
+            type="text" id="japanote-input" placeholder="あんき">
+        <button onclick="japanoteAdd(false)" style="border:2px solid black">Add Word</button>
+        <button onclick="japanoteAdd(true)">Add Proper Noun</button>
+        <button onclick="pycmd('japanote:settings')">Settings</button>
+        <div id="japanote-status" style="margin-top:5px; color:gray">{escape(resources.status())}</div>
     </fieldset>
-    <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script>
-    if (typeof QWebChannel !== "undefined") {  // Qt5
-        // yes, we really need setTimeout, or the channel breaks...
-        setTimeout(function(){
-            new QWebChannel(qt.webChannelTransport, function(channel) {
-                window.edict = channel.objects.edict;
-        })}, 100);
-    }
-    function quickAddWord() {
-        edict.quickAdd(quickAddPattern.value).then(added => {
-            if (added) {
-                quickAddPattern.value = "";
-            }
-        });
-    }
-    function quickAddNoun() {
-        edict.quickAdd(quickAddPattern.value, true).then(added => {
-            if (added) {
-                quickAddPattern.value = "";
-            }
-        });
-    }
-    document.getElementById("japanote-status").textContent = """ + status + """;
-    const quickAddPattern = document.getElementById('quick-add-pattern');
-    quickAddPattern.addEventListener('keypress', function(event) {
-        if (event.keyCode == 13) { quickAddWord(); }
-    });
-    </script>"""
+    function japanoteAdd(names) {{
+        const input = document.getElementById("japanote-input");
+        const message = JSON.stringify({{text: input.value, names: names}});
+        pycmd("japanote:add:" + message, (added) => {{
+            if (added) {{
+                input.value = "";
+            }}
+        }});
+    }}
+    document.getElementById("japanote-input").addEventListener("keydown", (event) => {{
+        if (event.key === "Enter") {{
+            japanoteAdd(false);
+        }}
+    }});
+    </script>
+    """
 
 
-def main() -> None:
-    assert mw is not None
-
-    # display quick add form
-    DeckBrowser._renderStats = wrap(DeckBrowser._renderStats, render, 'around')  # type: ignore
-
-    # add bridge to JavaScript's namespace
-    web_page = mw.deckBrowser.web.page()
-    channel = web_page.webChannel()
-    channel.registerObject('edict', bridge)
-
-    gui_hooks.profile_did_open.append(resources.on_profile_open)
-    gui_hooks.profile_will_close.append(on_profile_close)
+def on_js_message(handled: tuple[bool, Any], message: str, context: Any) -> tuple[bool, Any]:
+    if not isinstance(context, DeckBrowser) or not message.startswith('japanote:'):
+        return handled
+    command, _, argument = message[len('japanote:'):].partition(':')
+    if command == 'add':
+        request = json.loads(argument)
+        return True, quick_add(request['text'], request['names'])
+    if command == 'settings':
+        SettingsWindow.open()
+        return True, None
+    return handled
 
 
 def on_profile_close() -> None:
@@ -122,4 +97,12 @@ def on_profile_close() -> None:
         dictionary.close()
 
 
-main()
+def main() -> None:
+    gui_hooks.deck_browser_will_render_content.append(render)
+    gui_hooks.webview_did_receive_js_message.append(on_js_message)
+    gui_hooks.profile_did_open.append(resources.on_profile_open)
+    gui_hooks.profile_will_close.append(on_profile_close)
+
+
+if mw is not None:
+    main()

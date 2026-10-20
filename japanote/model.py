@@ -86,7 +86,6 @@ def add_notes(words: Iterable[Word]) -> None:
     if model is None:
         showInfo('Note type not found')
         return
-    model['did'] = deck['id']  # update model's default deck
 
     # check fields
     if not check_field(model, 'japanote_kanjiField'):
@@ -116,8 +115,9 @@ def add_notes(words: Iterable[Word]) -> None:
         if idfield and word.id and find_by_id(idfield, word.id):
             continue
 
-        # add card
-        n_newcards += col.addNote(note)
+        # NOTE: cards go to deck, unless their template has a deck override
+        col.add_note(note, deck['id'])
+        n_newcards += len(note.card_ids())
 
     if n_newcards == 0:
         showInfo('Note already exists')
