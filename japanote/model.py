@@ -97,6 +97,7 @@ class WordSearchModel(QAbstractTableModel):
     COLUMNS = ('Kanji', 'Kana', 'Furigana', 'JMdict ID', 'Definition')
 
     def __init__(self, names: bool = False) -> None:
+        # whether to include proper nouns
         QAbstractTableModel.__init__(self)
         self.words: list[Word] = []
         self.names = names
@@ -136,11 +137,15 @@ class WordSearchModel(QAbstractTableModel):
 
     def search(self, text: str) -> None:
         self.beginResetModel()
-        self.words = search(text, self.names)
+        self.words = search_vocabulary(text)
+        if self.names:
+            self.words += search_names(text)
         self.endResetModel()
 
 
-def search(text: str, names: bool) -> list[Word]:
-    if names:
-        return search_words(resources.names, text)
+def search_vocabulary(text: str) -> list[Word]:
     return search_words(resources.jmdict, text, resources.deinflector)
+
+
+def search_names(text: str) -> list[Word]:
+    return search_words(resources.names, text)

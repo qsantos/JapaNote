@@ -4,6 +4,7 @@ from typing import Any
 
 from aqt.qt import (
     QAbstractItemView,
+    QCheckBox,
     QHBoxLayout,
     QHeaderView,
     QLineEdit,
@@ -16,6 +17,7 @@ from aqt.qt import (
     QWidget,
 )
 
+from . import resources
 from .model import WordSearchModel, add_notes
 from .previewwindow import PreviewWindow
 from .settingswindow import SettingsWindow
@@ -48,6 +50,9 @@ class SearchWindow(QMainWindow):
         self.pattern.setClearButtonEnabled(True)
         self.pattern.returnPressed.connect(self.update_search)
         top.addWidget(self.pattern)
+        self.names = QCheckBox('Proper nouns')
+        self.names.toggled.connect(self.on_toggle_names)
+        top.addWidget(self.names)
         search_button = QPushButton('Search')
         search_button.clicked.connect(self.update_search)
         top.addWidget(search_button)
@@ -79,9 +84,23 @@ class SearchWindow(QMainWindow):
         bottom.addWidget(settings_button)
 
     def search(self, text: str, names: bool) -> None:
-        self.model.names = names
         self.pattern.setText(text)
+        self.names.blockSignals(True)
+        self.names.setChecked(names)
+        self.names.blockSignals(False)
+        self.on_toggle_names(names)
+
+    def on_toggle_names(self, names: bool) -> None:
+        if names and not resources.is_ready('names'):
+            resources.ensure('names', self.on_names_ready)
+            return
+        self.model.names = names
         self.update_search()
+
+    def on_names_ready(self) -> None:
+        # the window may have been closed during the download
+        if type(self).instance is self:
+            self.on_toggle_names(self.names.isChecked())
 
     def update_search(self) -> None:
         self.model.search(self.pattern.text())
