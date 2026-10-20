@@ -16,7 +16,7 @@ dependencies = [
 [tool.ruff]
 # Anki 24.06 to 25.02 ship Python 3.9
 target-version = "py39"
-exclude = ["japanote/romkan.py"]
+exclude = ["japanote/romkan.py", "japanote/user_files"]
 lint.select = [
     "ARG",  # flake8-unused-arguments
     "B",  # flake8-bugbear
