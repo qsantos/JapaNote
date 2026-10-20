@@ -38,8 +38,8 @@ deinflector = Deinflector()
 
 DICTIONARIES = {'jmdict': jmdict, 'names': names}
 LABELS = {
-    'jmdict': 'the dictionary (about 13 MB)',
-    'names': 'the names dictionary (about 9 MB)',
+    'jmdict': 'the dictionary (about 9 MB)',
+    'names': 'the names dictionary (about 5 MB)',
 }
 
 _busy: set[str] = set()

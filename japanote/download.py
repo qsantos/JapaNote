@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import lzma
 import os
 import shutil
 import sqlite3
@@ -16,6 +15,8 @@ import urllib.request
 import zipfile
 from collections.abc import Callable
 from typing import Any
+
+from .package import read_package
 
 USER_FILES = os.path.join(os.path.dirname(__file__), 'user_files')
 USER_AGENT = 'JapaNote (https://github.com/qsantos/JapaNote)'
@@ -81,17 +82,18 @@ def install_database(  # noqa: PLR0913
     prepare: Callable[[str], None],
     progress: Progress | None = None,
 ) -> str:
-    """Download an SQLite database compressed with xz, and return the path of the checked, uncompressed file
+    """Download a package (see package.py), and return the path of the checked database built from it
 
-    prepare is called with the path of the uncompressed file (e.g. to build indexes). The caller must
-    move the returned file to path, once the previous database is closed.
+    prepare is called with the path of the database (e.g. to build indexes). The caller must move the
+    returned file to path, once the previous database is closed.
     """
     compressed = path + '.xz'
     new = path + '.new'
     try:
         download(url, compressed, sha256, progress)
-        with lzma.open(compressed, 'rb') as src, open(new, 'wb') as dst:
-            shutil.copyfileobj(src, dst)
+        if os.path.exists(new):
+            os.remove(new)
+        read_package(compressed, new)
         check_database(new, format_)
         prepare(new)
     except BaseException:

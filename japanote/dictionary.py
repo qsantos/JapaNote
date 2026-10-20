@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from .deinflect import Deinflector
 
 # NOTE: must match FORMAT in tools/build_dictionaries.py
-FORMAT = 1
+FORMAT = 2
 
 
 @dataclass

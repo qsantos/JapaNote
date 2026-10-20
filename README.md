@@ -14,15 +14,16 @@ and `common` for common words.
 
 ## Dictionaries
 
-The add-on does not ship any dictionary. On first start, it downloads the main dictionary (about 13 MB, including the
-data of the sentence analyzer); the names dictionary (about 9 MB) is downloaded the first time it is needed. The
+The add-on does not ship any dictionary. On first start, it downloads the main dictionary (about 9 MB, including the
+data of the sentence analyzer); the names dictionary (about 5 MB) is downloaded the first time it is needed. The
 dictionaries are then updated in the background, at most once a day. Everything is stored in the add-on's
 `user_files` folder.
 
 The dictionaries are built every week by [a workflow](.github/workflows/dictionaries.yml) running
 [tools/build_dictionaries.py](tools/build_dictionaries.py), and published as assets of the
-[dictionaries release](https://github.com/qsantos/JapaNote/releases/tag/dictionaries). Each one is an SQLite database
-that is ready to query, so nothing is parsed when Anki starts.
+[dictionaries release](https://github.com/qsantos/JapaNote/releases/tag/dictionaries), in a format that compresses well
+(see [japanote/package.py](japanote/package.py)). Once downloaded, each one is turned into an SQLite database, so
+nothing is parsed when Anki starts.
 
 ## Cards in different decks
 

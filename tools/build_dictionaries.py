@@ -2,8 +2,8 @@
 """Build the dictionary databases that the add-on downloads
 
 The add-on does not parse any dictionary at runtime; instead, this script turns the original
-dictionaries into SQLite databases that are ready to query, and that are published as release
-assets (see .github/workflows/dictionaries.yml).
+dictionaries into SQLite databases, which are published as packages, in a format that compresses
+well, as release assets (see japanote/package.py and .github/workflows/dictionaries.yml).
 
 Two databases are built, both with only the furigana that the add-on would not guess by itself:
 - jmdict: JMdict (vocabulary), JmdictFurigana, KANJIDIC2 (kanji readings, for furigana), JLPT levels
@@ -15,7 +15,7 @@ Two databases are built, both with only the furigana that the add-on would not g
 Usage:
     build_dictionaries.py download SOURCES_DIR
     build_dictionaries.py build SOURCES_DIR OUTPUT_DIR BASE_URL
-    build_dictionaries.py install OUTPUT_DIR DB_DIR  (decompress and index, as the add-on does)
+    build_dictionaries.py install OUTPUT_DIR DB_DIR  (build and index the databases, as the add-on does)
 """
 from __future__ import annotations
 
@@ -24,7 +24,6 @@ import gzip
 import hashlib
 import importlib
 import json
-import lzma
 import os
 import re
 import shutil
@@ -43,7 +42,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator, Mapping
 
 # NOTE: must match FORMAT in japanote/dictionary.py
-FORMAT = 1
+FORMAT = 2
 
 EDRDG = 'http://ftp.edrdg.org/pub/Nihongo'
 FURIGANA = 'https://github.com/Doublevil/JmdictFurigana/releases/latest/download'
@@ -388,17 +387,22 @@ def build_database(  # noqa: PLR0913
     db.close()
 
 
-def compress(path: str) -> tuple[str, int, str]:
-    """Compress path with xz, and return the new path, its size and its SHA-256"""
-    # xz makes the databases a third smaller than gzip, and Python can decompress it (lzma)
-    compressed = path + '.xz'
-    with open(path, 'rb') as src, lzma.open(compressed, 'wb', preset=9 | lzma.PRESET_EXTREME) as dst:
-        shutil.copyfileobj(src, dst)
+def encodings(analyzer_size: int) -> dict[str, dict[str, Any]]:
+    """How to encode the columns of the tables in packages, to make them smaller (see japanote/package.py)"""
+    return {
+        'entry': {'id': 'delta', 'data': {'json': ['k', 'r', 's']}},
+        'jlpt': {'entry': 'delta'},
+        'token': {'num': 'delta'},
+        'analyzer': {'value': {'int16 rows': analyzer_size}},
+    }
+
+
+def sha256sum(path: str) -> str:
     digest = hashlib.sha256()
-    with open(compressed, 'rb') as f:
+    with open(path, 'rb') as f:
         while chunk := f.read(1 << 16):
             digest.update(chunk)
-    return compressed, os.path.getsize(compressed), digest.hexdigest()
+    return digest.hexdigest()
 
 
 def build(sources_dir: str, output_dir: str, base_url: str) -> None:
@@ -415,7 +419,9 @@ def build(sources_dir: str, output_dir: str, base_url: str) -> None:
         'jlpt': parse_jlpt({level: source(f'jlpt-n{level}.csv') for level in range(1, 6)}),
         'pitch': parse_accents(source('accents.txt')),
     }
-    jmdict_tables['token'], jmdict_tables['analyzer'] = parse_janome(source('janome.whl'))
+    tokens, analyzer = parse_janome(source('janome.whl'))
+    jmdict_tables['token'], jmdict_tables['analyzer'] = tokens, analyzer
+    package = load_module('package')
     differ = furigana_differ(kanjidic)
     databases: list[tuple[str, str, str, Mapping[str, Iterable[tuple[Any, ...]]], Any]] = [
         ('jmdict', 'JMdict_e.gz', 'JmdictFurigana.json', jmdict_tables, None),
@@ -425,32 +431,35 @@ def build(sources_dir: str, output_dir: str, base_url: str) -> None:
         print(f'Building {name}')
         path = os.path.join(output_dir, f'{name}-v{FORMAT}-{version}.sqlite')
         build_database(path, source(entries), source(furigana), tables, version, keep_entry, differ)
-        compressed, size, sha256 = compress(path)
+        packaged = os.path.join(output_dir, f'{name}-v{FORMAT}-{version}.xz')
+        package.write_package(path, packaged, encodings(dict(analyzer)['size']))
         os.remove(path)
+        size = os.path.getsize(packaged)
         manifest['dictionaries'][name] = {
-            'url': f'{base_url}/{os.path.basename(compressed)}',
+            'url': f'{base_url}/{os.path.basename(packaged)}',
             'size': size,
-            'sha256': sha256,
+            'sha256': sha256sum(packaged),
         }
-        print(f'  {compressed}: {size / 2**20:.1f} MiB')
+        print(f'  {packaged}: {size / 2**20:.1f} MiB')
 
     with open(os.path.join(output_dir, f'manifest-v{FORMAT}.json'), 'w') as f:
         json.dump(manifest, f, indent=4)
 
 
 def install(output_dir: str, db_dir: str) -> None:
-    """Decompress the built databases, and index them as the add-on does (for development and tests)"""
+    """Turn the built packages into indexed databases, as the add-on does (for development and tests)"""
     dictionary = load_module('dictionary')
+    package = load_module('package')
     os.makedirs(db_dir, exist_ok=True)
     for filename in os.listdir(output_dir):
-        if filename.endswith('.sqlite.xz'):
-            path = os.path.join(db_dir, filename.split('-')[0] + '.sqlite')
-            if os.path.exists(path):
-                os.remove(path)
-            with lzma.open(os.path.join(output_dir, filename)) as src, open(path, 'wb') as dst:
-                shutil.copyfileobj(src, dst)
-            dictionary.create_indexes(path)
-            print(f'Installed {path}')
+        if f'-v{FORMAT}-' not in filename or not filename.endswith('.xz'):
+            continue
+        path = os.path.join(db_dir, filename.split('-')[0] + '.sqlite')
+        if os.path.exists(path):
+            os.remove(path)
+        package.read_package(os.path.join(output_dir, filename), path)
+        dictionary.create_indexes(path)
+        print(f'Installed {path}')
 
 
 def main() -> None:
