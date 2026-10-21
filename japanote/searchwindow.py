@@ -5,6 +5,7 @@ from typing import Any
 from aqt.qt import (
     QAbstractItemView,
     QCheckBox,
+    QEvent,
     QHBoxLayout,
     QHeaderView,
     QLineEdit,
@@ -67,17 +68,21 @@ class SearchWindow(QMainWindow):
         header.setStretchLastSection(True)
         header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.table.doubleClicked.connect(self.on_edit)
+        # NOTE: the table handles Enter, which would not reach the window
+        self.table.installEventFilter(self)
         layout.addWidget(self.table)
 
         bottom = QHBoxLayout()
         layout.addLayout(bottom)
-        add_button = QPushButton('Add selected')
-        add_button.setDefault(True)
-        add_button.clicked.connect(self.on_add)
-        bottom.addWidget(add_button)
+        # checking the note first is the usual way; several words can be added at once as they are
         edit_button = QPushButton('Edit and add…')
+        edit_button.setDefault(True)
         edit_button.clicked.connect(lambda: self.on_edit(self.table.currentIndex()))
         bottom.addWidget(edit_button)
+        add_button = QPushButton('Add as-is')
+        add_button.setToolTip('Add the selected words without editing them')
+        add_button.clicked.connect(self.on_add)
+        bottom.addWidget(add_button)
         bottom.addStretch()
         settings_button = QPushButton('Settings')
         settings_button.clicked.connect(SettingsWindow.open)
@@ -115,6 +120,16 @@ class SearchWindow(QMainWindow):
     def on_edit(self, index: QModelIndex) -> None:
         if index.isValid():
             PreviewWindow.edit(self.model.words[index.row()])
+
+    def eventFilter(self, watched: Any, event: Any) -> bool:
+        """Edit the current word on Enter, like on a double click"""
+        if (
+            watched is self.table and event.type() == QEvent.Type.KeyPress
+            and event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
+        ):
+            self.on_edit(self.table.currentIndex())
+            return True
+        return bool(QMainWindow.eventFilter(self, watched, event))
 
     def keyPressEvent(self, event: Any) -> None:
         if event.key() == Qt.Key.Key_Escape:

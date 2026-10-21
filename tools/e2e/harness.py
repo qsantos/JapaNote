@@ -17,7 +17,7 @@ import traceback
 from typing import Any, Callable, Optional
 
 from aqt import gui_hooks, mw
-from aqt.qt import Qt, QTimer
+from aqt.qt import QApplication, QEvent, QKeyEvent, Qt, QTimer
 
 import japanote.config as cfg
 import japanote.download
@@ -249,6 +249,13 @@ def _() -> Wait:
     check(window is not None and len(window.model.words) > 1, 'the search window lists the matches')
     if window is not None:
         log('  matches:', [(word.kanji, word.id) for word in window.model.words[:4]])
+        window.table.setFocus()
+        enter = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Return, Qt.KeyboardModifier.NoModifier)
+        QApplication.sendEvent(window.table, enter)
+        preview = PreviewWindow.instance
+        check(preview is not None and preview.kanji.text() == '紙', 'Enter opens the preview of the first match')
+        if preview is not None:
+            preview.close()
         window.close()
     return None
 
