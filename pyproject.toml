@@ -3,10 +3,10 @@ name = "japanote"
 version = "0.1.0"
 description = "Anki add-on to quickly make notes for Japanese vocabulary"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 dependencies = [
-    "anki>=24.11",
-    "aqt>=24.11",
+    "anki>=24.06",
+    "aqt>=24.06",
     "mypy>=1.14.1",
     "pyqt5-stubs>=5.15.6.0",
     "pyside6-stubs>=6.4.2.0",
@@ -101,5 +101,5 @@ follow_imports = "silent"
 
 [dependency-groups]
 dev = [
-    "pytest>=9.1.1",
+    "pytest>=8.3",
 ]
