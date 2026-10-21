@@ -1,7 +1,8 @@
 [Anki add-on](https://ankiweb.net/shared/info/171148684) to quickly make notes for Japanese vocabulary.
 
 Type a word (in kanji, kana or romaji, possibly conjugated) in the field below the deck list, and press Enter: JapaNote
-creates a note with its kanji, kana, furigana, definition and JMdict ID. When several words match, it lets you pick.
+creates a note with its kanji, kana, furigana, definition and JMdict ID, and tells which word it added (e.g. 食べる,
+from 食べました, polite past). When several words match, it lets you pick.
 When no word matches, it looks for a proper noun, then for an article of the Japanese Wikipedia (for technical words,
 taking the reading from the article, and the definition from the title of the English article); for text that is in
 none of those, such as a sentence, it guesses the furigana. Either way, it lets you check the note before adding it. To browse the results without adding anything,

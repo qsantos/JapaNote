@@ -25,6 +25,13 @@ def test_search_deinflects(jmdict: Dictionary, deinflector: Deinflector) -> None
     assert [w.kanji for w in search_words(jmdict, '食べました', deinflector)] == ['食べる']
 
 
+def test_search_inflection(jmdict: Dictionary, deinflector: Deinflector) -> None:
+    word = search_words(jmdict, '食べさせられた', deinflector)[0]
+    assert word.label() == '食べる, from 食べさせられた (causative, potential or passive, past)'
+    word = search_words(jmdict, 'たべる', deinflector)[0]
+    assert (word.label(), word.inflection) == ('食べる', '')
+
+
 def test_search_romaji(jmdict: Dictionary, deinflector: Deinflector) -> None:
     assert search_words(jmdict, 'taberu', deinflector)[0].kanji == '食べる'
 

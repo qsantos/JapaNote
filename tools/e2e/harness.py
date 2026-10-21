@@ -186,6 +186,7 @@ def _() -> Wait:
 @step('a conjugated word: 食べました', timeout=30)
 def _() -> Wait:
     log('  quick_add ->', quick_add('食べました'))
+    check(messages[-1] == 'Added 食べる, from 食べました (polite past) (2 cards).', 'the dictionary form is named')
     added = find('食べる')
     check(added, f'added as 食べる: {added}')
     if not added:
@@ -214,6 +215,7 @@ def _() -> Wait:
     count = len(notes())
     log('  quick_add ->', quick_add('たべる'))
     check(len(notes()) == count, 'no duplicate')
+    check(messages[-1] == 'There is already a note for 食べる', 'the message names the word')
     return None
 
 

@@ -21,7 +21,7 @@ from .kana import normalize
 
 if TYPE_CHECKING:
 
-    from .deinflect import Deinflector
+    from .deinflect import Candidate, Deinflector
     from .package import Progress
 
 # NOTE: must match FORMAT in tools/build_dictionaries.py
@@ -47,6 +47,9 @@ class Word:
     common: bool = False
     # positions of the pitch accent (see pitch.py)
     pitch: list[int] = field(default_factory=list)
+    # when the word was found from an inflected form: that form, and its inflections (e.g. 'polite past')
+    inflected: str = ''
+    inflection: str = ''
 
     def __repr__(self) -> str:
         return f'<{self.kanji}>'
@@ -57,6 +60,12 @@ class Word:
         if not self.meanings:
             return ''
         return '<ol>{}</ol>'.format(''.join(f'<li>{escape(meaning, quote=False)}</li>' for meaning in self.meanings))
+
+    def label(self) -> str:
+        """The word, with the form it was found from, if any (e.g. '食べる, from 食べました (polite past)')"""
+        if not self.inflection:
+            return self.kanji
+        return f'{self.kanji}, from {self.inflected} ({self.inflection})'
 
     def get_type(self) -> int:
         """Return type mask for deinflections (see deinflect.py)"""
@@ -240,11 +249,17 @@ def search_words(dictionary: Dictionary, text: str, deinflector: Deinflector | N
     if deinflector is None:
         return dictionary.lookup(text)
     words: dict[str, Word] = {}
-    # the exact form comes first, then the deinflected ones
-    candidates = dict.fromkeys(deinflector(text))
-    for candidate in candidates:
+    # the exact form comes first, then the deinflected ones; the same form can be reached in several ways
+    candidates: dict[tuple[str, int], Candidate] = {}
+    for candidate in deinflector(text):
+        candidates.setdefault((candidate.word, candidate.type_), candidate)
+    for candidate in candidates.values():
         for word in dictionary.lookup(candidate.word):
             if word.get_type() & candidate.type_ and word.id not in words:
+                if candidate.reasons:
+                    word.inflected = text
+                    # from the dictionary form, e.g. 'causative, passive, past'
+                    word.inflection = ', '.join(reversed(candidate.reasons))
                 words[word.id] = word
     return list(words.values())
 

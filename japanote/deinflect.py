@@ -15,6 +15,8 @@ class Rule(NamedTuple):
 class Candidate(NamedTuple):
     word: str
     type_: int
+    # the inflections removed from the word to get this candidate, the outermost first
+    reasons: tuple[str, ...] = ()
 
 
 SuffixToRules = dict[str, tuple[list[Rule], 'SuffixToRules']]
@@ -74,10 +76,8 @@ class Deinflector:
     def __call__(self, word: str) -> Iterator[Candidate]:
         """Iterate through possible deinflections of word (including word)
 
-        Each value is a triplet whose first element is the deinflected word,
-        the second element is a mask of possible grammatical classes for the
-        word, and the third element is the corresponding reasonning for the
-        inflection"""
+        Each value is a candidate, with the deinflected word, a mask of possible
+        grammatical classes for the word, and the inflections that were removed"""
         q = [Candidate(word, 0xff)]
         while q:
             candidate = q.pop()
@@ -101,4 +101,5 @@ class Deinflector:
                     q.append(Candidate(
                         word=word.removesuffix(rule.from_) + rule.to,
                         type_=rule.type_ >> 8,
+                        reasons=(*candidate.reasons, rule.reason),
                     ))

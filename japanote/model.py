@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from gettext import ngettext
+from html import escape
 from typing import TYPE_CHECKING, Any
 
 from anki.collection import SearchNode
@@ -89,6 +90,12 @@ def fill_note(note: Note, word: Word, fields: dict[str, str], conf: dict[str, An
         note.tags.append('common')
 
 
+def is_duplicate(note: Note, word: Word, fields: dict[str, str]) -> bool:
+    if 'id' in fields and word.id:
+        return find_by_id(fields['id'], word.id)
+    return note.fields_check() == NoteFieldsCheckResult.DUPLICATE
+
+
 def add_notes(words: Iterable[Word]) -> int:
     """Add a note for each word, and return the number of new cards"""
     col = get_collection()
@@ -107,31 +114,33 @@ def add_notes(words: Iterable[Word]) -> int:
         deck_id = col.decks.get_current_id()
 
     n_new_cards = 0
-    n_duplicates = 0
+    added: list[Word] = []
+    duplicates: list[Word] = []
     for word in words:
         note = col.new_note(model)
         fill_note(note, word, fields, conf)
-
-        if 'id' in fields and word.id:
-            is_duplicate = find_by_id(fields['id'], word.id)
-        else:
-            is_duplicate = note.fields_check() == NoteFieldsCheckResult.DUPLICATE
-        if is_duplicate:
-            n_duplicates += 1
+        if is_duplicate(note, word, fields):
+            duplicates.append(word)
             continue
 
         # NOTE: cards go to deck_id, unless their template has a deck override (see settings)
         col.add_note(note, deck_id)
         n_new_cards += len(note.card_ids())
+        added.append(word)
         # sentences (without ID) are never recorded
         if 'audio' in fields and word.id:
             add_audio_later(note.id, fields['audio'], [word.kanji, word.kana])
 
     if n_new_cards == 0:
-        if n_duplicates:
-            showInfo('Note already exists')
+        if len(duplicates) == 1:
+            showInfo(f'There is already a note for {duplicates[0].label()}')
+        elif duplicates:
+            showInfo('There are already notes for these words')
     else:
-        tooltip(ngettext('{} card added.', '{} cards added.', n_new_cards).format(n_new_cards))
+        # name the word, since it may not be the one expected (e.g. the dictionary form of a verb)
+        what = escape(added[0].label(), quote=False) if len(added) == 1 else f'{len(added)} notes'
+        cards = ngettext('{} card', '{} cards', n_new_cards).format(n_new_cards)
+        tooltip(f'Added {what} ({cards}).')
     return n_new_cards
 
 
