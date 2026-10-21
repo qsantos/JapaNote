@@ -130,6 +130,21 @@ def proper_nouns() -> list[tuple[Any, ...]]:
     return [note for note in notes() if note[1] == 'すずきいちろう']
 
 
+def confirm() -> str:
+    """Press Add in the preview, which must be open, and return its message"""
+    preview = PreviewWindow.instance
+    check(preview is not None, 'the preview opens')
+    if preview is None:
+        return ''
+    message = preview.message.text()
+    log('  preview:', message, '|', preview.kanji.text(), '|', preview.furigana.text())
+    preview.on_add()
+    # it stays open when nothing was added (e.g. a duplicate)
+    if PreviewWindow.instance is not None:
+        PreviewWindow.instance.close()
+    return message
+
+
 def find(expression: str) -> list[tuple[Any, ...]]:
     return [note for note in notes() if note[0] == expression]
 
@@ -198,6 +213,7 @@ def _() -> Wait:
 @step('a conjugated word: 食べました', timeout=30)
 def _() -> Wait:
     log('  quick_add ->', quick_add('食べました'))
+    check(confirm().startswith('Dictionary form of 食べました (polite past)'), 'the preview names the inflection')
     check(messages[-1] == 'Added 食べる, from 食べました (polite past) (2 cards).', 'the dictionary form is named')
     added = find('食べる')
     check(added, f'added as 食べる: {added}')
@@ -228,6 +244,7 @@ def _() -> Wait:
 def _() -> Wait:
     count = len(notes())
     log('  quick_add ->', quick_add('たべる'))
+    check('already a note' in confirm(), 'the preview tells about the duplicate')
     check(len(notes()) == count, 'no duplicate')
     check(messages[-1] == 'There is already a note for 食べる', 'the message names the word')
     return None
@@ -263,7 +280,7 @@ def _() -> Wait:
 @step('a proper noun: the names dictionary is downloaded on first use', timeout=180)
 def _() -> Wait:
     log('  quick_add ->', quick_add('すずきいちろう'))
-    return lambda: res.is_ready('names') and (SearchWindow.instance is not None or proper_nouns())
+    return lambda: res.is_ready('names') and (SearchWindow.instance or PreviewWindow.instance or proper_nouns())
 
 
 @step('the proper noun is added')
@@ -274,6 +291,8 @@ def _() -> Wait:
         window.table.selectRow(0)
         window.on_add()
         window.close()
+    elif PreviewWindow.instance is not None:
+        confirm()
     check(proper_nouns(), f'added: {proper_nouns()}')
     return None
 
@@ -343,6 +362,7 @@ def _() -> Wait:
 
 @step('neko is added')
 def _() -> Wait:
+    confirm()
     check(find('猫'), 'added as 猫')
     mw.deckBrowser.web.evalWithCallback(
         "document.getElementById('japanote-input').value",

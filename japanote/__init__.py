@@ -11,7 +11,7 @@ from aqt.utils import showInfo
 from . import config, resources, wikipedia
 from .batchwindow import BatchWindow
 from .dictionary import Word, sentence_word
-from .model import add_notes, search_names, search_vocabulary
+from .model import find_duplicates, search_names, search_vocabulary
 from .previewwindow import PreviewWindow
 from .searchwindow import SearchWindow
 from .settingswindow import SettingsWindow
@@ -58,7 +58,7 @@ def quick_add(text: str) -> bool:  # noqa: PLR0911
         words = search_names(text)
         names = True
     if len(words) == 1:
-        add_notes(words)
+        check_word(words[0])
         return True
     if words:
         SearchWindow.open(text, names)
@@ -68,6 +68,16 @@ def quick_add(text: str) -> bool:  # noqa: PLR0911
         look_up_wikipedia(text)
         return False
     return add_unknown(text, None)
+
+
+def check_word(word: Word) -> None:
+    """Let the user check the note for a word of a dictionary before adding it"""
+    notes = []
+    if word.inflection:
+        notes.append(f'Dictionary form of {word.inflected} ({word.inflection}).')
+    if find_duplicates([word])[0]:
+        notes.append('There is already a note for this word.')
+    PreviewWindow.edit(word, escape(' '.join(notes)))
 
 
 def look_up_wikipedia(text: str) -> None:
