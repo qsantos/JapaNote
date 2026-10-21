@@ -18,7 +18,7 @@ from aqt.utils import tooltip
 
 from .deinflect import Deinflector
 from .dictionary import FORMAT, Dictionary, create_indexes, update_indexes
-from .download import fetch_json, install_database, update_database, user_file
+from .download import StepProgress, fetch_json, install_database, update_database, user_file
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -38,46 +38,53 @@ deinflector = Deinflector()
 
 DICTIONARIES = {'jmdict': jmdict, 'names': names}
 LABELS = {
-    'jmdict': 'the dictionary (about 9 MB)',
-    'names': 'the names dictionary (about 5 MB)',
+    'jmdict': 'the dictionary',
+    'names': 'the names dictionary',
+}
+SIZES = {
+    'jmdict': 'about 9 MB',
+    'names': 'about 5 MB',
 }
 
 _busy: set[str] = set()
 # what to do once a resource is ready (only the last request is kept)
 _pending: dict[str, Callable[[], None]] = {}
 _status = ''
+# percent shown in the progress bar below the status, if any
+_percent: int | None = None
 
 
-def status() -> str:
-    return _status
+def status() -> tuple[str, int | None]:
+    return _status, _percent
 
 
-def set_status(text: str) -> None:
-    """Show text below the input field of the deck browser"""
-    global _status  # noqa: PLW0603
+def set_status(text: str, percent: int | None = None) -> None:
+    """Show text below the input field of the deck browser, with a progress bar if percent is given"""
+    global _status, _percent  # noqa: PLW0603
     _status = text
+    _percent = percent
     assert mw is not None
     if mw.state == 'deckBrowser':
-        js = f"""
-            var status = document.getElementById("japanote-status");
-            if (status) {{ status.textContent = {json.dumps(text)}; }}
-        """
-        mw.deckBrowser.web.eval(js)
+        mw.deckBrowser.web.eval(f'japanoteSetStatus({json.dumps(text)}, {json.dumps(percent)})')
 
 
-def _progress_reporter(label: str) -> Callable[[int, int], None]:
-    """Report the progress of a download from a background thread, a few times per second"""
+def _progress_reporter(name: str) -> StepProgress:
+    """Report the progress of an installation from a background thread, a few times per second"""
     last = 0.0
+    last_step = ''
 
-    def progress(done: int, total: int) -> None:
-        nonlocal last
+    def progress(step: str, fraction: float) -> None:
+        nonlocal last, last_step
         now = time.monotonic()
-        if now - last < PROGRESS_INTERVAL:
+        if now - last < PROGRESS_INTERVAL and step == last_step:
             return
-        last = now
-        percent = f' {100 * done // total}%' if total else ''
-        text = f'Downloading {label}…{percent}'
-        mw.taskman.run_on_main(lambda: set_status(text))
+        last, last_step = now, step
+        percent = int(100 * fraction)
+        if step == 'download':
+            text = f'Downloading {LABELS[name]} ({SIZES[name]})… {percent}%'
+        else:
+            text = f'Preparing {LABELS[name]}… {percent}%'
+        mw.taskman.run_on_main(lambda: set_status(text, percent))
     return progress
 
 
@@ -95,10 +102,10 @@ def ensure(name: str, then: Callable[[], None]) -> None:
         return
     _busy.add(name)
     label = LABELS[name]
-    set_status(f'Downloading {label}…')
+    set_status(f'Downloading {label} ({SIZES[name]})…', 0)
 
     def task() -> str:
-        progress = _progress_reporter(label)
+        progress = _progress_reporter(name)
         info = fetch_json(MANIFEST_URL)['dictionaries'][name]
         return install_database(info['url'], info['sha256'], DICTIONARIES[name].path, FORMAT, create_indexes, progress)
 

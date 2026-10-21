@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from html import escape
 from typing import TYPE_CHECKING, Any
 
@@ -113,6 +114,9 @@ def search(text: str) -> None:
 
 
 def render(deck_browser: DeckBrowser, content: DeckBrowserContent) -> None:  # noqa: ARG001
+    status, percent = resources.status()
+    # NOTE: so that the status cannot close the script
+    status_js = json.dumps(status).replace('<', '\\u003c')
     content.stats += f"""
     <fieldset style="width:500px; margin:30px 0 30px 0">
         <legend>JapaNote: create a note for a Japanese word or sentence</legend>
@@ -121,9 +125,19 @@ def render(deck_browser: DeckBrowser, content: DeckBrowserContent) -> None:  # n
         <button onclick="japanoteAdd()" style="border:2px solid black">Add</button>
         <button onclick="japanoteSearch()">Search…</button>
         <button onclick="pycmd('japanote:settings')">Settings</button>
-        <div id="japanote-status" style="margin-top:5px; color:gray">{escape(resources.status())}</div>
+        <div id="japanote-status" style="margin-top:5px; color:gray"></div>
+        <progress id="japanote-progress" max="100" style="width:100%; display:none"></progress>
     </fieldset>
     <script>
+    function japanoteSetStatus(text, percent) {{
+        document.getElementById("japanote-status").textContent = text;
+        const progress = document.getElementById("japanote-progress");
+        progress.style.display = percent === null ? "none" : "";
+        if (percent !== null) {{
+            progress.value = percent;
+        }}
+    }}
+    japanoteSetStatus({status_js}, {json.dumps(percent)});
     function japanoteAdd() {{
         const input = document.getElementById("japanote-input");
         pycmd("japanote:add:" + input.value, (added) => {{

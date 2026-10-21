@@ -20,8 +20,10 @@ from .package import apply_patch, read_package
 
 USER_FILES = os.path.join(os.path.dirname(__file__), 'user_files')
 USER_AGENT = 'JapaNote (https://github.com/qsantos/JapaNote)'
-# called with the number of bytes downloaded so far, and the total
+# called with the number of bytes (or rows) processed so far, and the total
 Progress = Callable[[int, int], None]
+# called with what is being done ('download', then 'build'), and the fraction of it that is done
+StepProgress = Callable[[str, float], None]
 
 
 class DownloadError(Exception):
@@ -79,23 +81,31 @@ def install_database(  # noqa: PLR0913
     sha256: str,
     path: str,
     format_: int,
-    prepare: Callable[[str], None],
-    progress: Progress | None = None,
+    prepare: Callable[[str, Progress | None], None],
+    progress: StepProgress | None = None,
 ) -> str:
     """Download a package (see package.py), and return the path of the checked database built from it
 
-    prepare is called with the path of the database (e.g. to build indexes). The caller must move the
-    returned file to path, once the previous database is closed.
+    prepare is called with the path of the database (e.g. to build indexes), and a progress callback.
+    The caller must move the returned file to path, once the previous database is closed.
     """
     compressed = path + '.xz'
     new = path + '.new'
+
+    def step(name: str, start: float, end: float) -> Progress | None:
+        """Report the progress of a step, as the part of the progress of name from start to end"""
+        if progress is None:
+            return None
+        return lambda done, total: progress(name, start + (end - start) * (done / total if total else 0))
+
     try:
-        download(url, compressed, sha256, progress)
+        download(url, compressed, sha256, step('download', 0, 1))
         if os.path.exists(new):
             os.remove(new)
-        read_package(compressed, new)
+        # each half takes about the same time
+        read_package(compressed, new, step('build', 0, 0.5))
         check_database(new, format_)
-        prepare(new)
+        prepare(new, step('build', 0.5, 1))
     except BaseException:
         if os.path.exists(new):
             os.remove(new)
@@ -150,7 +160,7 @@ def update_database(  # noqa: PLR0913
     version: str,
     target: str,
     format_: int,
-    prepare: Callable[[str], None],
+    prepare: Callable[[str, Progress | None], None],
     update_indexes: Callable[[str, dict[str, list[tuple[Any, ...]]]], None],
 ) -> str:
     """Update a database from version to target, with patches when they are smaller than the new package
