@@ -23,6 +23,10 @@ if TYPE_CHECKING:
     from anki.notes import Note, NoteId
 
 
+# JMdict IDs searched at a time (see existing_ids); Anki fails with more than 1000 terms (twice as many)
+SEARCH_BATCH = 200
+
+
 def find_by_id(field_name: str, word_id: str) -> bool:
     """Whether a note already has this JMdict ID; JapaNote 1 stored IDs like EntL1358280X"""
     col = get_collection()
@@ -90,6 +94,24 @@ def fill_note(note: Note, word: Word, fields: dict[str, str], conf: dict[str, An
         note.tags.append('common')
 
 
+def existing_ids(field_name: str, word_ids: list[str]) -> set[str]:
+    """The JMdict IDs that a note already has (see find_by_id), with a search for many IDs at a time"""
+    col = get_collection()
+    found = set()
+    for start in range(0, len(word_ids), SEARCH_BATCH):
+        search = col.build_search_string(
+            *(
+                SearchNode(field=SearchNode.Field(field_name=field_name, text=text))
+                for word_id in word_ids[start:start + SEARCH_BATCH]
+                for text in (word_id, word_id + 'X')
+            ),
+            joiner='OR',
+        )
+        for note_id in col.find_notes(search):
+            found.add(col.get_note(note_id)[field_name].strip().removesuffix('X'))
+    return found
+
+
 def is_duplicate(note: Note, word: Word, fields: dict[str, str]) -> bool:
     if 'id' in fields and word.id:
         return find_by_id(fields['id'], word.id)
@@ -105,8 +127,12 @@ def find_duplicates(words: list[Word]) -> list[bool]:
     model = col.models.by_name(conf['model'])
     assert model is not None
     fields = {role: name for role, name in conf['fields'].items() if name}
+    ids = existing_ids(fields['id'], [word.id for word in words if word.id]) if 'id' in fields else set()
     duplicates = []
     for word in words:
+        if 'id' in fields and word.id:
+            duplicates.append(word.id in ids)
+            continue
         note = col.new_note(model)
         fill_note(note, word, fields, conf)
         duplicates.append(is_duplicate(note, word, fields))
