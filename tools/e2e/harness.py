@@ -16,12 +16,13 @@ import traceback
 from typing import Any, Callable, Optional
 
 from aqt import gui_hooks, mw
-from aqt.qt import QTimer
+from aqt.qt import Qt, QTimer
 
 import japanote.config as cfg
 import japanote.download
 import japanote.model
 import japanote.resources as res
+from japanote.batchwindow import BatchWindow
 from japanote.previewwindow import PreviewWindow
 from japanote.searchwindow import SearchWindow
 from japanote.settingswindow import CreditsWindow, SettingsWindow
@@ -317,6 +318,46 @@ def _() -> Wait:
     )
     start = time.time()
     return lambda: time.time() - start > 1
+
+
+@step('a list of words, pasted in the input field of the deck browser')
+def _() -> Wait:
+    mw.deckBrowser.web.eval("""
+        const data = new DataTransfer();
+        data.setData('text/plain', '食べました\\nかみ\\nみず\\tWater\\nxyzzy\\n');
+        document.getElementById('japanote-input').dispatchEvent(
+            new ClipboardEvent('paste', {clipboardData: data, cancelable: true}));
+    """)
+    return lambda: BatchWindow.instance is not None
+
+
+@step('the list of words is checked, then added')
+def _() -> Wait:
+    window = BatchWindow.instance
+    rows: dict[str, tuple[Any, ...]] = {}
+    for row, line in enumerate(window.lines):
+        cells = [window.table.item(row, column) for column in range(len(window.COLUMNS))]
+        checked = cells[0].checkState() == Qt.CheckState.Checked
+        texts = [cell.text() if cell else '' for cell in cells[2:]]
+        box = window.table.cellWidget(row, 2)
+        if box is not None:
+            texts[0] = box.currentText()
+        rows[line] = (checked, *texts)
+        log(f'  {line}:', rows[line])
+    check(list(rows) == ['食べました', 'かみ', 'みず', 'xyzzy'], 'a row per line, without what follows a tab')
+    check(not rows['食べました'][0] and rows['食べました'][4].startswith('Already added'), '食べる is already added')
+    check(rows['かみ'][0] and 'matches' in rows['かみ'][4], 'several matches for かみ')
+    check(rows['みず'][0] and rows['みず'][1] == '水 【みず】', 'みず is 水')
+    check(not rows['xyzzy'][0] and rows['xyzzy'][4].startswith('Not found'), 'xyzzy is not found')
+    window.grab().save(os.path.join(BASE_DIR, 'screenshot-batch.png'))
+    # the second match of かみ
+    window.table.cellWidget(window.lines.index('かみ'), 2).setCurrentIndex(1)
+    window.on_add()
+    check(find('水') and find('神') and not find('紙'), 'the checked words are added')
+    check(messages[-1] == 'Added 2 notes (4 cards).', f'message: {messages[-1]}')
+    check(window.summary.text() == '3 of 4 found, 3 already added', f'summary: {window.summary.text()}')
+    window.close()
+    return None
 
 
 @step('an update, with patches', timeout=180)

@@ -12,6 +12,7 @@ uses it as a user would, and checks the results:
 - a proper noun downloads the names dictionary, then is added;
 - a sentence, or a word only on Wikipedia, opens the preview;
 - typing in the input field of the deck browser adds a word;
+- pasting a list of words in it opens the window to add them;
 - an update of the dictionaries downloads only the patches;
 - the interface never freezes for more than 300 ms.
 
@@ -47,6 +48,6 @@ running. It takes a few minutes, and needs an internet connection, for the audio
 
 It prints the log of the harness, and fails if a check failed. The Anki base directory is kept
 (its path is printed), with the logs of Anki and of the server, and screenshots of the progress
-bars.
+bars and of the window to add several words.
 
 Set `JAPANOTE_E2E_PORT` to use another port than 18765 (and build with the matching base URL).

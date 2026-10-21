@@ -9,6 +9,7 @@ from aqt.deckbrowser import DeckBrowser, DeckBrowserContent
 from aqt.utils import showInfo
 
 from . import config, resources, wikipedia
+from .batchwindow import BatchWindow
 from .dictionary import Word, sentence_word
 from .model import add_notes, search_names, search_vocabulary
 from .previewwindow import PreviewWindow
@@ -113,6 +114,14 @@ def search(text: str) -> None:
     SearchWindow.open(text.strip())
 
 
+def add_several(text: str) -> None:
+    """Open the window to add a list of words"""
+    if not resources.is_ready('jmdict'):
+        resources.ensure('jmdict', lambda: add_several(text))
+        return
+    BatchWindow.open(text.strip())
+
+
 def render(deck_browser: DeckBrowser, content: DeckBrowserContent) -> None:  # noqa: ARG001
     status, percent = resources.status()
     # NOTE: so that the status cannot close the script
@@ -124,6 +133,7 @@ def render(deck_browser: DeckBrowser, content: DeckBrowserContent) -> None:  # n
             type="text" id="japanote-input" placeholder="あんき">
         <button onclick="japanoteAdd()" style="border:2px solid black">Add</button>
         <button onclick="japanoteSearch()">Search…</button>
+        <button onclick="japanoteAddSeveral()">Add several…</button>
         <button onclick="pycmd('japanote:settings')">Settings</button>
         <div id="japanote-status" style="margin-top:5px; color:gray"></div>
         <progress id="japanote-progress" max="100" style="width:100%; display:none"></progress>
@@ -149,6 +159,19 @@ def render(deck_browser: DeckBrowser, content: DeckBrowserContent) -> None:  # n
     function japanoteSearch() {{
         pycmd("japanote:search:" + document.getElementById("japanote-input").value);
     }}
+    function japanoteAddSeveral() {{
+        const input = document.getElementById("japanote-input");
+        pycmd("japanote:several:" + input.value);
+        input.value = "";
+    }}
+    // the input field would join the lines of a pasted list
+    document.getElementById("japanote-input").addEventListener("paste", (event) => {{
+        const text = event.clipboardData.getData("text/plain");
+        if (text.trim().includes("\\n")) {{
+            event.preventDefault();
+            pycmd("japanote:several:" + text);
+        }}
+    }});
     document.getElementById("japanote-input").addEventListener("keydown", (event) => {{
         if (event.key === "Enter") {{
             japanoteAdd();
@@ -166,6 +189,9 @@ def on_js_message(handled: tuple[bool, Any], message: str, context: Any) -> tupl
         return True, quick_add(argument)
     if command == 'search':
         search(argument)
+        return True, None
+    if command == 'several':
+        add_several(argument)
         return True, None
     if command == 'settings':
         SettingsWindow.open()

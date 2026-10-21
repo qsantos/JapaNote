@@ -96,6 +96,23 @@ def is_duplicate(note: Note, word: Word, fields: dict[str, str]) -> bool:
     return note.fields_check() == NoteFieldsCheckResult.DUPLICATE
 
 
+def find_duplicates(words: list[Word]) -> list[bool]:
+    """Whether each word already has a note (none, when no note can be added with the settings)"""
+    col = get_collection()
+    conf = config.get()
+    if settings_problem(conf) is not None:
+        return [False] * len(words)
+    model = col.models.by_name(conf['model'])
+    assert model is not None
+    fields = {role: name for role, name in conf['fields'].items() if name}
+    duplicates = []
+    for word in words:
+        note = col.new_note(model)
+        fill_note(note, word, fields, conf)
+        duplicates.append(is_duplicate(note, word, fields))
+    return duplicates
+
+
 def add_notes(words: Iterable[Word]) -> int:
     """Add a note for each word, and return the number of new cards"""
     col = get_collection()
