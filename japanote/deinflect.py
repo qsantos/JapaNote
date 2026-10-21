@@ -65,13 +65,9 @@ class Deinflector:
                     rules = None
                     suffix_to_rules = self.suffix_to_rules
                     for c in reversed(from_):
-                        try:
-                            rules, suffix_to_rules = suffix_to_rules[c]
-                        except KeyError:
-                            rules = []
-                            new_suffix_to_rules: SuffixToRules = {}
-                            suffix_to_rules[c] = (rules, new_suffix_to_rules)
-                            suffix_to_rules = new_suffix_to_rules
+                        if c not in suffix_to_rules:
+                            suffix_to_rules[c] = ([], {})
+                        rules, suffix_to_rules = suffix_to_rules[c]
                     assert rules is not None
                     rules.append(Rule(from_, to, type_, reason))
 

@@ -141,13 +141,9 @@ class SettingsWindow(QDialog):
         self.tags = QLineEdit(self.config['tags'])
         self.tags.textChanged.connect(self.on_change_tags)
         self.add_row('Tags', self.tags)
-        self.tag_jlpt = QCheckBox('Tag the JLPT level (e.g. JLPT::N3)')
-        self.tag_jlpt.setChecked(self.config['tag_jlpt'])
-        self.tag_jlpt.toggled.connect(lambda checked: self.on_change_option('tag_jlpt', checked))
+        self.tag_jlpt = self.checkbox('Tag the JLPT level (e.g. JLPT::N3)', 'tag_jlpt')
         self.add_row('', self.tag_jlpt, columns=2)
-        self.tag_common = QCheckBox('Tag common words (common)')
-        self.tag_common.setChecked(self.config['tag_common'])
-        self.tag_common.toggled.connect(lambda checked: self.on_change_option('tag_common', checked))
+        self.tag_common = self.checkbox('Tag common words (common)', 'tag_common')
         self.add_row('', self.tag_common, columns=2)
 
         # NOTE: not word-wrapped, since Qt then underestimates the height of the window, and squishes it
@@ -181,6 +177,12 @@ class SettingsWindow(QDialog):
         box.addItems(items)
         if current in items:
             box.setCurrentIndex(items.index(current))
+        return box
+
+    def checkbox(self, text: str, option: str) -> QCheckBox:
+        box = QCheckBox(text)
+        box.setChecked(self.config[option])
+        box.toggled.connect(lambda checked: self.on_change_option(option, checked))
         return box
 
     def add_row(self, label: str, widget: QWidget, example: str = '', columns: int = 1) -> list[QWidget]:
