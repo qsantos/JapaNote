@@ -9,10 +9,9 @@ from aqt.qt import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
-    QFormLayout,
-    QGroupBox,
-    QHBoxLayout,
+    QGridLayout,
     QLabel,
+    QLayout,
     QLineEdit,
     QVBoxLayout,
     QWidget,
@@ -40,9 +39,9 @@ def credits() -> str:
     for name, dictionary in resources.DICTIONARIES.items():
         if os.path.exists(dictionary.path):
             versions.append(f'{name} {dictionary.version()}')
-    installed = f'<br>Installed: {", ".join(versions)}' if versions else ''
+    installed = f'<p>Installed dictionaries: {", ".join(versions)}</p>' if versions else ''
     return (
-        'Uses <a href="https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project">JMdict</a>, '
+        '<p>Uses <a href="https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project">JMdict</a>, '
         '<a href="https://www.edrdg.org/enamdict/enamdict_doc.html">JMnedict</a> and '
         '<a href="https://www.edrdg.org/wiki/index.php/KANJIDIC_Project">KANJIDIC2</a>, '
         'property of the <a href="https://www.edrdg.org/">Electronic Dictionary Research and Development '
@@ -56,8 +55,41 @@ def credits() -> str:
         'technical words from <a href="https://ja.wikipedia.org/">Wikipedia</a> (CC BY-SA 4.0); '
         'recordings from <a href="https://lingualibre.org/">Lingua Libre</a> (mostly CC BY-SA 4.0); '
         'sentences analyzed with the IPA dictionary (© Nara Institute of Science and Technology), as compiled '
-        f'by <a href="https://github.com/mocobeta/janome">Janome</a> (Apache 2.0).{installed}'
+        f'by <a href="https://github.com/mocobeta/janome">Janome</a> (Apache 2.0).</p>{installed}'
     )
+
+
+class CreditsWindow(QDialog):
+    instance: CreditsWindow | None = None
+
+    @classmethod
+    def open(cls) -> None:
+        if cls.instance is None:
+            cls.instance = cls()
+            cls.instance.show()
+        else:
+            window_to_front(cls.instance)
+
+    def __init__(self) -> None:
+        QDialog.__init__(self)
+        self.setWindowTitle('JapaNote credits')
+        layout = QVBoxLayout(self)
+        label = QLabel(credits())
+        label.setWordWrap(True)
+        label.setOpenExternalLinks(True)
+        # NOTE: a word-wrapped label needs a width, or Qt makes it narrow and very tall
+        label.setMinimumWidth(500)
+        layout.addWidget(label)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.rejected.connect(self.close)
+        layout.addWidget(buttons)
+
+    def reject(self) -> None:
+        self.close()
+
+    def closeEvent(self, event: Any) -> None:
+        type(self).instance = None
+        event.accept()
 
 
 class SettingsWindow(QDialog):
@@ -83,58 +115,62 @@ class SettingsWindow(QDialog):
         model_names = sorted(model.name for model in col.models.all_names_and_ids())
 
         layout = QVBoxLayout(self)
+        # grow the window when rows appear (e.g. the warning, or more card types)
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
         layout.addWidget(QLabel('How new notes should be created:'))
-        form = QFormLayout()
-        layout.addLayout(form)
+        # labels, then inputs, all of the same width, then examples
+        self.grid = QGridLayout()
+        self.grid.setColumnStretch(1, 1)
+        layout.addLayout(self.grid)
 
         self.deck_box = self.combobox([CURRENT_DECK, *self.deck_names], self.config['deck'] or CURRENT_DECK)
         self.deck_box.currentTextChanged.connect(self.on_change_deck)
-        form.addRow('Deck', self.deck_box)
+        self.add_row('Deck', self.deck_box)
 
         self.model_box = self.combobox(model_names, self.config['model'])
         self.model_box.currentTextChanged.connect(self.on_change_model)
-        form.addRow('Note type', self.model_box)
+        self.add_row('Note type', self.model_box)
 
         self.field_boxes: dict[str, QComboBox] = {}
         for role, label in config.FIELDS.items():
             box = QComboBox()
             box.currentTextChanged.connect(lambda text, role=role: self.on_change_field(role, text))
             self.field_boxes[role] = box
-            form.addRow(label, self.with_example(box, EXAMPLES[role]))
+            self.add_row(label, box, f'e.g. {EXAMPLES[role]}')
 
         self.tags = QLineEdit(self.config['tags'])
         self.tags.textChanged.connect(self.on_change_tags)
-        form.addRow('Tags', self.tags)
+        self.add_row('Tags', self.tags)
         self.tag_jlpt = QCheckBox('Tag the JLPT level (e.g. JLPT::N3)')
         self.tag_jlpt.setChecked(self.config['tag_jlpt'])
         self.tag_jlpt.toggled.connect(lambda checked: self.on_change_option('tag_jlpt', checked))
-        form.addRow('', self.tag_jlpt)
+        self.add_row('', self.tag_jlpt, columns=2)
         self.tag_common = QCheckBox('Tag common words (common)')
         self.tag_common.setChecked(self.config['tag_common'])
         self.tag_common.toggled.connect(lambda checked: self.on_change_option('tag_common', checked))
-        form.addRow('', self.tag_common)
+        self.add_row('', self.tag_common, columns=2)
 
+        # NOTE: not word-wrapped, since Qt then underestimates the height of the window, and squishes it
         self.no_id_warning = QLabel(
-            'We advise you to save the JMdict ID in a field, so that duplicates are detected, '
-            'and notes can be updated later.',
+            'We advise you to save the JMdict ID in a field, so that duplicates\n'
+            'are detected, and notes can be updated later.',
         )
-        self.no_id_warning.setWordWrap(True)
         self.no_id_warning.setStyleSheet('color: #c00')
-        layout.addWidget(self.no_id_warning)
+        self.grid.addWidget(self.no_id_warning, self.grid.rowCount(), 0, 1, 3)
 
         # deck overrides are stored in the card templates, so they also apply to Anki's Add window
-        self.templates_group = QGroupBox('Decks of the cards (deck override of each card type)')
-        self.templates_form = QFormLayout(self.templates_group)
-        layout.addWidget(self.templates_group)
+        heading = QLabel('Decks of the cards (deck override of each card type):')
+        heading.setContentsMargins(0, 10, 0, 0)
+        self.grid.addWidget(heading, self.grid.rowCount(), 0, 1, 3)
+        # the rows of the card types, replaced when the note type changes
+        self.template_widgets: list[QWidget] = []
 
-        credits_label = QLabel(credits())
-        credits_label.setWordWrap(True)
-        credits_label.setOpenExternalLinks(True)
-        credits_label.setStyleSheet('font-size: small')
-        layout.addWidget(credits_label)
-
+        layout.addStretch()
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         buttons.rejected.connect(self.close)
+        credits_button = buttons.addButton('Credits…', QDialogButtonBox.ButtonRole.HelpRole)
+        assert credits_button is not None
+        credits_button.clicked.connect(CreditsWindow.open)
         layout.addWidget(buttons)
 
         # select a note type when there is none yet
@@ -147,15 +183,18 @@ class SettingsWindow(QDialog):
             box.setCurrentIndex(items.index(current))
         return box
 
-    def with_example(self, widget: QWidget, example: str) -> QWidget:
-        container = QWidget()
-        layout = QHBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
-        label = QLabel(f'e.g. {example}')
-        label.setStyleSheet('color: gray')
-        layout.addWidget(widget, 1)
-        layout.addWidget(label)
-        return container
+    def add_row(self, label: str, widget: QWidget, example: str = '', columns: int = 1) -> list[QWidget]:
+        """Add a row to the grid, and return its widgets"""
+        row = self.grid.rowCount()
+        widgets = [QLabel(label), widget]
+        self.grid.addWidget(widgets[0], row, 0)
+        self.grid.addWidget(widget, row, 1, 1, columns)
+        if example:
+            example_label = QLabel(example)
+            example_label.setStyleSheet('color: gray')
+            self.grid.addWidget(example_label, row, 2)
+            widgets.append(example_label)
+        return widgets
 
     def on_change_deck(self, text: str) -> None:
         self.config['deck'] = '' if text == CURRENT_DECK else text
@@ -195,8 +234,10 @@ class SettingsWindow(QDialog):
         self.no_id_warning.setVisible(not self.config['fields']['id'])
 
     def update_templates(self, model: dict[str, Any] | None) -> None:
-        while self.templates_form.rowCount():
-            self.templates_form.removeRow(0)
+        for widget in self.template_widgets:
+            self.grid.removeWidget(widget)
+            widget.deleteLater()
+        self.template_widgets = []
         if model is None:
             return
         col = get_collection()
@@ -207,7 +248,7 @@ class SettingsWindow(QDialog):
             box.currentTextChanged.connect(
                 lambda text, name=template['name']: self.on_change_template_deck(name, text),
             )
-            self.templates_form.addRow(template['name'], box)
+            self.template_widgets.extend(self.add_row(template['name'], box))
 
     def on_change_template_deck(self, template_name: str, deck_name: str) -> None:
         col = get_collection()
