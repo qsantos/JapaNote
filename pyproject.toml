@@ -67,6 +67,7 @@ lint.allowed-confusables = ["（", "）", "！", "？", "，", "゠"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["PLR2004"]  # Magic value used in comparison
+"tools/e2e/*" = ["PLR2004"]
 
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = "single"
