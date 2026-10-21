@@ -51,3 +51,13 @@ It prints the log of the harness, and fails if a check failed. The Anki base dir
 bars, of the window to add several words, and of the preview of a note.
 
 Set `JAPANOTE_E2E_PORT` to use another port than 18765 (and build with the matching base URL).
+
+## Screenshots
+
+`screenshots.py` is another add-on driving JapaNote, which takes the screenshots of its listing on AnkiWeb (the main
+screen, the preview, a card, the search, the list of words and the settings), in a note type with every field that
+JapaNote fills; set `JAPANOTE_SCREENSHOTS_THEME=dark` for the dark theme:
+
+```sh
+JAPANOTE_E2E_HARNESS=tools/e2e/screenshots.py tools/e2e/run.sh ~/.local/share/AnkiProgramFiles/.venv/bin/anki dist
+```

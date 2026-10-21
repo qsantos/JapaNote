@@ -28,7 +28,8 @@ mkdir -p "$base/addons21/japanote_harness"
 # a copy, so that the add-on's user_files do not end up in the repository
 cp -r "$repo/japanote" "$base/addons21/japanote"
 rm -rf "$base/addons21/japanote/user_files" "$base/addons21/japanote/__pycache__"
-cp "$here/harness.py" "$base/addons21/japanote_harness/__init__.py"
+# the harness, or another add-on driving JapaNote, such as screenshots.py
+cp "${JAPANOTE_E2E_HARNESS:-$here/harness.py}" "$base/addons21/japanote_harness/__init__.py"
 
 # a Python that can import Anki, to create the profile: the one next to Anki, unless given
 python=${ANKI_PYTHON:-$(dirname "$anki")/python}
