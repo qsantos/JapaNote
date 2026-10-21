@@ -30,6 +30,9 @@ LOG = open(os.path.join(BASE_DIR, 'harness.log'), 'w', buffering=1)  # noqa: SIM
 THEME = os.environ.get('JAPANOTE_SCREENSHOTS_THEME', 'light')
 # so that the decks have cards to review
 WORDS = ['猫', '犬', '水', '学校', '先生', '電車', '天気', '友達', '勉強', '料理', '映画', '音楽']
+# a sentence, whose furigana JapaNote guesses
+SENTENCE = '明日は友達と一緒に映画を見に行きます。'
+TRANSLATION = 'Tomorrow, I am going to see a movie with a friend.'
 LIST = '漢字\nがっこう\nはし\nyomimasu\n'
 
 FRONT = '<div class="expression">{{Expression}}</div>'
@@ -213,6 +216,43 @@ def _() -> Wait:
 def _() -> Wait:
     save(SettingsWindow.instance, '6-settings')
     SettingsWindow.instance.close()
+    japanote.quick_add(SENTENCE)
+    return lambda: PreviewWindow.instance is not None
+
+
+@steps.append
+def _() -> Wait:
+    preview = PreviewWindow.instance
+    # as the user would, since there is no definition for a sentence
+    preview.note['Meaning'] = TRANSLATION
+    # so that the card shows the furigana, rather than the details of every kanji
+    preview.note['Kanji'] = ''
+    preview.editor.loadNote()
+    preview.resize(700, 560)
+    return after(2)
+
+
+@steps.append
+def _() -> Wait:
+    save(PreviewWindow.instance, '7-sentence')
+    PreviewWindow.instance.add()
+    col = mw.col
+    note = col.get_note(col.find_notes(f'Expression:{SENTENCE}')[0])
+    col.sched.reposition_new_cards([card.id for card in note.cards()], 0, 1, randomize=False, shift_existing=True)
+    col.decks.select(col.decks.id('Japanese::Vocabulary'))
+    mw.moveToState('review')
+    return after(2)
+
+
+@steps.append
+def _() -> Wait:
+    mw.reviewer._showAnswer()
+    return after(2)
+
+
+@steps.append
+def _() -> Wait:
+    save(mw, '8-sentence-card')
     return None
 
 

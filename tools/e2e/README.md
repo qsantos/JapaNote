@@ -55,7 +55,7 @@ Set `JAPANOTE_E2E_PORT` to use another port than 18765 (and build with the match
 ## Screenshots
 
 `screenshots.py` is another add-on driving JapaNote, which takes the screenshots of its listing on AnkiWeb (the main
-screen, the preview, a card, the search, the list of words and the settings), in a note type with every field that
+screen, the preview, a card, the search, the list of words, the settings, and a sentence with its furigana), in a note type with every field that
 JapaNote fills; set `JAPANOTE_SCREENSHOTS_THEME=dark` for the dark theme:
 
 ```sh
