@@ -8,7 +8,8 @@ well, as release assets (see japanote/package.py and .github/workflows/dictionar
 Two databases are built, both with only the furigana that the add-on would not guess by itself:
 - jmdict: JMdict (vocabulary), JmdictFurigana, KANJIDIC2 (kanji readings, for furigana), JLPT levels
   from Jonathan Waller's lists (with JMdict IDs from yomitan-jlpt-vocab), pitch accents from Kanjium,
-  and the IPA dictionary, as compiled by Janome, for the sentence analyzer (see japanote/analyzer.py);
+  example sentences from Tatoeba, and the IPA dictionary, as compiled by Janome, for the sentence
+  analyzer (see japanote/analyzer.py);
 - names: JMnedict (proper nouns), without the unclassified ones, JmnedictFurigana; it is optional and
   downloaded on first use.
 
@@ -19,6 +20,7 @@ Usage:
 """
 from __future__ import annotations
 
+import bz2
 import csv
 import gzip
 import hashlib
@@ -29,6 +31,7 @@ import re
 import shutil
 import sqlite3
 import sys
+import tarfile
 import tempfile
 import types
 import urllib.request
@@ -54,6 +57,7 @@ JANOME = (
     'https://files.pythonhosted.org/packages/73/7d/70f4069f4bbf0fca023e82a1fbbade6f5216365d4fe259fee1950723eca5/'
     'Janome-0.5.0-py2.py3-none-any.whl'
 )
+TATOEBA = 'https://downloads.tatoeba.org/exports'
 JANOME_SHA256 = 'd098670394a77881ce2f6b7d696c0ea5ff74c0c8cf74a8a882159ec82c0e6dc7'
 SOURCES = {
     'JMdict_e.gz': f'{EDRDG}/JMdict_e.gz',
@@ -63,6 +67,9 @@ SOURCES = {
     'JmnedictFurigana.json': f'{FURIGANA}/JmnedictFurigana.json',
     'accents.txt': f'{KANJIUM}/accents.txt',
     'janome.whl': JANOME,
+    'jpn_indices.tar.bz2': f'{TATOEBA}/jpn_indices.tar.bz2',
+    'jpn_sentences.tsv.bz2': f'{TATOEBA}/per_language/jpn/jpn_sentences.tsv.bz2',
+    'eng_sentences.tsv.bz2': f'{TATOEBA}/per_language/eng/eng_sentences.tsv.bz2',
     **{
         f'jlpt-n{level}.csv': f'{JLPT}/n{level}.csv'
         for level in range(1, 6)
@@ -77,7 +84,8 @@ ATTRIBUTION = (
     'from yomitan-jlpt-vocab (https://github.com/stephenmk/yomitan-jlpt-vocab), CC BY-SA 4.0. The pitch accent '
     'notation was provided by Uros O. through his free database Kanjium (https://github.com/mifunetoshiro/kanjium), '
     'CC BY-SA 4.0. The sentence analyzer uses the IPA dictionary (IPADIC), copyright 2000-2007 Nara Institute '
-    'of Science and Technology, as compiled by Janome (https://github.com/mocobeta/janome), Apache 2.0.'
+    'of Science and Technology, as compiled by Janome (https://github.com/mocobeta/janome), Apache 2.0. '
+    'Example sentences from Tatoeba (https://tatoeba.org/), CC BY 2.0 FR.'
 )
 
 SCHEMA = """
@@ -105,8 +113,14 @@ CREATE TABLE analyzer (key TEXT PRIMARY KEY, value) WITHOUT ROWID;
 CREATE TABLE pitch (
     text TEXT NOT NULL, reading TEXT NOT NULL, accents TEXT NOT NULL, PRIMARY KEY (text, reading)
 ) WITHOUT ROWID;
+-- an example sentence for an entry, from Tatoeba, with its translation, and the form of the word in it
+CREATE TABLE example (
+    entry INTEGER PRIMARY KEY, japanese TEXT NOT NULL, english TEXT NOT NULL, form TEXT NOT NULL
+);
 """
 
+# preferred length of the example sentences, in characters
+EXAMPLE_LENGTH = 15
 # priorities that make a word "common", like the (P) marker of EDICT
 COMMON_PRIORITIES = {'news1', 'ichi1', 'spec1', 'spec2', 'gai1'}
 
@@ -242,6 +256,70 @@ def parse_accents(path: str) -> Iterator[tuple[str, str, str]]:
             pitches.setdefault((text, reading or text), ','.join(positions))
     for (text, reading), accents in pitches.items():
         yield text, reading, accents
+
+
+def read_sentences(path: str, ids: set[int] | None = None) -> dict[int, str]:
+    """The sentences of a Tatoeba export (e.g. jpn_sentences.tsv.bz2), or only those with the given IDs"""
+    sentences = {}
+    with bz2.open(path, 'rt', encoding='utf-8') as f:
+        for line in f:
+            id_, _, text = line.rstrip('\n').split('\t', 2)
+            if ids is None or int(id_) in ids:
+                sentences[int(id_)] = text
+    return sentences
+
+
+def parse_examples(db: sqlite3.Connection, sources_dir: str) -> Iterator[tuple[int, str, str, str]]:
+    """An example sentence for each entry of db that has one (rows of the example table)
+
+    Tatoeba indexes its Japanese sentences, with the JMdict words they contain (the "B lines" of the Tanaka
+    corpus), e.g. "直ぐに{すぐに} 戻る{戻ります}", where each word is written as headword(reading)[sense]{form in
+    the sentence}~, with the ~ when the sentence is a good example of the word.
+    """
+    # headword → [(entry, readings)]
+    headwords: dict[str, list[tuple[int, set[str]]]] = {}
+    for id_, data in db.execute('SELECT id, data FROM entry ORDER BY rank, id'):
+        entry = json.loads(data)
+        readings = {r['t'] for r in entry['r']}
+        for text in {k['t'] for k in entry.get('k', [])} | readings:
+            headwords.setdefault(text, []).append((id_, readings))
+
+    with tarfile.open(os.path.join(sources_dir, 'jpn_indices.tar.bz2')) as archive:
+        member = archive.extractfile('jpn_indices.csv')
+        assert member is not None
+        indices = [line.decode().rstrip('\n').split('\t') for line in member]
+    japanese = read_sentences(os.path.join(sources_dir, 'jpn_sentences.tsv.bz2'))
+    english = read_sentences(os.path.join(sources_dir, 'eng_sentences.tsv.bz2'), {int(row[1]) for row in indices})
+
+    # entry → (is a good example, sentence, its translation, form of the word)
+    candidates: dict[int, list[tuple[bool, str, str, str]]] = {}
+    word_pattern = re.compile(r'([^(\[{~]+)(?:\(([^)]+)\))?(?:\[[0-9]+\])?(?:\{([^}]+)\})?(~)?')
+    for japanese_id, english_id, line in indices:
+        sentence, translation = japanese.get(int(japanese_id)), english.get(int(english_id))
+        if sentence is None or translation is None:
+            continue
+        for word in line.split():
+            match = word_pattern.fullmatch(word)
+            if match is None:
+                continue
+            headword, reading, form, good = match.groups()
+            entries = [id_ for id_, readings in headwords.get(headword, []) if reading is None or reading in readings]
+            # NOTE: when a headword is ambiguous, the most common entry is the most likely
+            if entries:
+                candidates.setdefault(entries[0], []).append((bool(good), sentence, translation, form or headword))
+    for entry, sentences in candidates.items():
+        # good examples first, then those of a typical length, which are neither trivial nor hard to read
+        good, sentence, translation, form = min(
+            sentences, key=lambda candidate: (not candidate[0], abs(len(candidate[1]) - EXAMPLE_LENGTH), candidate[1]),
+        )
+        yield entry, sentence, translation, form
+
+
+def add_examples(path: str, sources_dir: str) -> None:
+    db = sqlite3.connect(path)
+    db.executemany('INSERT INTO example VALUES (?, ?, ?, ?)', list(parse_examples(db, sources_dir)))
+    db.commit()
+    db.close()
 
 
 def parse_janome(path: str) -> tuple[list[tuple[Any, ...]], list[tuple[str, Any]]]:
@@ -396,6 +474,7 @@ def encodings(analyzer_size: int) -> dict[str, dict[str, Any]]:
         'entry': {'id': 'delta', 'data': {'json': ['k', 'r', 's']}},
         'jlpt': {'entry': 'delta'},
         'token': {'num': 'delta'},
+        'example': {'entry': 'delta'},
         'analyzer': {'value': {'int16 rows': analyzer_size}},
     }
 
@@ -519,6 +598,8 @@ def build(sources_dir: str, output_dir: str, base_url: str) -> None:
         print(f'Building {name}')
         path = os.path.join(output_dir, f'{name}-v{FORMAT}-{version}.sqlite')
         build_database(path, source(entries), source(furigana), tables, version, keep_entry, differ)
+        if name == 'jmdict':
+            add_examples(path, sources_dir)
         packaged = os.path.join(output_dir, f'{name}-v{FORMAT}-{version}.xz')
         package.write_package(path, packaged, encodings(dict(analyzer)['size']))
         size = os.path.getsize(packaged)

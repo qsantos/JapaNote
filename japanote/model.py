@@ -84,7 +84,11 @@ def fill_note(note: Note, word: Word, fields: dict[str, str], conf: dict[str, An
         'pitch': pitches_html(word.kana, word.pitch),
         # filled later (see add_audio_later)
         'audio': '',
+        'example': '',
     }
+    if 'example' in fields:
+        example = resources.jmdict.example(word.id)
+        values['example'] = example.html() if example else ''
     for role, name in fields.items():
         note[name] = values[role]
     note.tags = conf['tags'].split()

@@ -31,6 +31,24 @@ INDEX_BATCH = 4096
 
 
 @dataclass
+class Example:
+    """An example sentence, from Tatoeba"""
+    japanese: str
+    english: str
+    # the form of the word in the sentence (e.g. 食べた for 食べる)
+    form: str
+
+    def html(self) -> str:
+        """The sentence, with the word in bold, then its translation"""
+        before, form, after = self.japanese.partition(self.form)
+        if not form:
+            before, after = self.japanese, ''
+        japanese = escape(before, quote=False) + (f'<b>{escape(form, quote=False)}</b>' if form else '')
+        japanese += escape(after, quote=False)
+        return f'{japanese}<br>{escape(self.english, quote=False)}'
+
+
+@dataclass
 class Word:
     """What a note is made from"""
     kanji: str
@@ -233,6 +251,18 @@ class Dictionary:
             common=any(form.get('p') for form in data.get('k', []) + data['r']),
             pitch=self.pitch(kanji, kana),
         )
+
+    def example(self, word_id: str) -> Example | None:
+        """An example sentence for an entry, if there is one"""
+        if not word_id.startswith(self.id_prefix):
+            return None
+        query = 'SELECT japanese, english, form FROM example WHERE entry = ?'
+        try:
+            row = self.db.execute(query, (int(word_id[len(self.id_prefix):]),)).fetchone()
+        except sqlite3.OperationalError:
+            # a dictionary from before the examples, until it is updated
+            return None
+        return Example(*row) if row else None
 
     def pitch(self, text: str, reading: str) -> list[int]:
         row = self.db.execute('SELECT accents FROM pitch WHERE text = ? AND reading = ?', (text, reading)).fetchone()

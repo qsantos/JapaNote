@@ -179,15 +179,16 @@ def _() -> Wait:
     return None
 
 
-@step('settings: pitch, audio and tags')
+@step('settings: pitch, audio, example and tags')
 def _() -> Wait:
     model = mw.col.models.by_name('Japanese')
-    for name in ('Pitch', 'Audio'):
+    for name in ('Pitch', 'Audio', 'Example'):
         mw.col.models.add_field(model, mw.col.models.new_field(name))
     mw.col.models.update_dict(model)
     config = cfg.get()
     config['fields']['pitch'] = 'Pitch'
     config['fields']['audio'] = 'Audio'
+    config['fields']['example'] = 'Example'
     config['tags'] = 'japanote extra'
     cfg.save(config)
     return None
@@ -207,9 +208,10 @@ def _() -> Wait:
     return lambda: mw.col.get_note(state['nid'])['Audio']
 
 
-@step('tags, pitch and audio of 食べる')
+@step('tags, pitch, example and audio of 食べる')
 def _() -> Wait:
     note = mw.col.get_note(state['nid'])
+    check('<b>食べ' in note['Example'] and '<br>' in note['Example'], f'example: {note["Example"]}')
     check({'japanote', 'extra', 'common', 'JLPT::N5'} <= set(note.tags), f'tags: {note.tags}')
     check(note['Pitch'], f'pitch: {note["Pitch"]}')
     audio = note['Audio']

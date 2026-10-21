@@ -1,5 +1,9 @@
+import sqlite3
+
+import pytest
+
 from japanote.deinflect import Deinflector
-from japanote.dictionary import Dictionary, search_words
+from japanote.dictionary import Dictionary, Example, search_words
 
 
 def test_lookup(jmdict: Dictionary) -> None:
@@ -60,3 +64,24 @@ def test_tags(jmdict: Dictionary) -> None:
 
 def test_furigana_with_katakana_reading(names: Dictionary) -> None:
     assert names.furigana('爪哇島', 'ジャワとう') == '爪哇[ジャワ]島[とう]'
+
+
+def test_example(jmdict: Dictionary) -> None:
+    try:
+        jmdict.db.execute('SELECT 1 FROM example')
+    except sqlite3.OperationalError:
+        pytest.skip('dictionary built before the examples')
+    word = jmdict.lookup('あんき')[0]
+    example = jmdict.example(word.id)
+    assert example is not None
+    assert example.form in example.japanese
+    assert example.english
+    assert jmdict.example('EntN5711355') is None
+
+
+def test_example_html() -> None:
+    example = Example('この詩を暗記しましょう。', "Let's learn this poem by heart.", '暗記')
+    assert example.html() == "この詩を<b>暗記</b>しましょう。<br>Let's learn this poem by heart."
+    # the form is not always in the sentence as is
+    assert Example('<a>', 'b & c', 'x').html() == '&lt;a&gt;<br>b &amp; c'
+

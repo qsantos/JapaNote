@@ -12,14 +12,15 @@ To add a list of words (e.g. the vocabulary of a lesson), paste it in the field,
 can also open a text or CSV file (taking its first column): each line is looked up, and you can check the matches, pick
 another one when there are several, and skip the words that already have a note, before adding them all at once.
 
-Optionally, notes can also get the pitch accent of the word, and a recording by a native speaker from
+Optionally, notes can also get the pitch accent of the word, an example sentence with its translation (for about
+29,000 words, from Tatoeba, with the word in bold), and a recording by a native speaker from
 [Lingua Libre](https://lingualibre.org/) when there is one (it is fetched in the background, and added to the note a
 few seconds later). New notes are tagged `japanote` by default, as well as with their JLPT level (e.g. `JLPT::N3`)
 and `common` for common words.
 
 ## Dictionaries
 
-The add-on does not ship any dictionary. On first start, it downloads the main dictionary (about 9 MB, including the
+The add-on does not ship any dictionary. On first start, it downloads the main dictionary (about 10 MB, including the
 data of the sentence analyzer); the names dictionary (about 5 MB) is downloaded the first time it is needed. The
 dictionaries are then updated in the background, at most once a day. Everything is stored in the add-on's
 `user_files` folder.
@@ -71,6 +72,8 @@ The add-on must stay compatible with Python 3.9, which Anki 24.06 to 25.02 ship.
   [yomitan-jlpt-vocab](https://github.com/stephenmk/yomitan-jlpt-vocab) (CC BY-SA 4.0)
 - the pitch accent notation was provided by Uros O. through his free database
   [Kanjium](https://github.com/mifunetoshiro/kanjium) (CC BY-SA 4.0)
+- example sentences from [Tatoeba](https://tatoeba.org/) (CC BY 2.0 FR), chosen with the index of the words they
+  contain (originally from the Tanaka Corpus)
 - readings and translations of technical words from [Wikipedia](https://ja.wikipedia.org/) (CC BY-SA 4.0)
 - recordings from [Lingua Libre](https://lingualibre.org/), hosted on Wikimedia Commons (mostly CC BY-SA 4.0; the
   name of the speaker is kept in the name of the file)

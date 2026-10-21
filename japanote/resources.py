@@ -42,7 +42,7 @@ LABELS = {
     'names': 'the names dictionary',
 }
 SIZES = {
-    'jmdict': 'about 9 MB',
+    'jmdict': 'about 10 MB',
     'names': 'about 5 MB',
 }
 

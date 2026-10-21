@@ -15,6 +15,7 @@ FIELDS = {
     'id': 'Put JMdict ID in',
     'pitch': 'Put pitch accent in',
     'audio': 'Put audio in',
+    'example': 'Put example sentence in',
 }
 # settings of JapaNote 1 (stored in col.conf); they are copied, but kept for older versions
 OLD_KEYS = {
