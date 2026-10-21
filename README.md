@@ -61,6 +61,10 @@ make -C japanote package
 
 The add-on must stay compatible with Python 3.9, which Anki 24.06 to 25.02 ship.
 
+The package, `japanote/japanote.ankiaddon`, can be installed from the add-ons window of Anki, with "Install from
+file…". It then replaces the version from AnkiWeb, which keeps updating it. Its `manifest.json` declares the oldest
+version of Anki supported, which must also be set when uploading the package to AnkiWeb, since AnkiWeb ignores it.
+
 ## Credits
 
 - [JMdict](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project),
