@@ -22,9 +22,12 @@ from .kana import normalize
 if TYPE_CHECKING:
 
     from .deinflect import Deinflector
+    from .package import Progress
 
 # NOTE: must match FORMAT in tools/build_dictionaries.py
-FORMAT = 2
+FORMAT = 3
+# entries indexed at a time
+INDEX_BATCH = 4096
 
 
 @dataclass
@@ -80,7 +83,7 @@ def entry_keys(data: dict[str, Any]) -> set[str]:
     return {normalize(form['t']) for form in data.get('k', []) + data['r']}
 
 
-def create_indexes(path: str) -> None:
+def create_indexes(path: str, progress: Progress | None = None) -> None:
     """Index the entries of a database by writing and reading, and the words of the analyzer
 
     The indexes are not published with the database, since they can be built in a few seconds, but
@@ -90,11 +93,20 @@ def create_indexes(path: str) -> None:
     try:
         db.execute('CREATE INDEX token_surface ON token (surface)')
         db.execute(KEY_SCHEMA)
-        rows = db.execute('SELECT id, data FROM entry').fetchall()
-        db.executemany(
-            'INSERT OR IGNORE INTO key VALUES (?, ?)',
-            ((key, id_) for id_, data in rows for key in entry_keys(json.loads(data))),
-        )
+        (total,) = db.execute('SELECT count(*) FROM entry').fetchone()
+        done, last = 0, -1
+        # by batches, to report the progress, and since this runs in a background thread, to not hold the GIL
+        # for too long at a time, which would block Anki's interface
+        while rows := db.execute(
+            'SELECT id, data FROM entry WHERE id > ? ORDER BY id LIMIT ?', (last, INDEX_BATCH),
+        ).fetchall():
+            db.executemany(
+                'INSERT OR IGNORE INTO key VALUES (?, ?)',
+                ((key, id_) for id_, data in rows for key in entry_keys(json.loads(data))),
+            )
+            done, last = done + len(rows), rows[-1][0]
+            if progress is not None:
+                progress(done, total)
         db.commit()
     finally:
         db.close()

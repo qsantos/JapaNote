@@ -1,16 +1,19 @@
 """The format in which the dictionaries are published, and turned into SQLite databases once downloaded
 
 A package is a text file compressed with xz. Its first line is a JSON header listing the tables,
-with the SQL creating them; then, for each table, each column is a line: a JSON array of its values.
-Columns compress much better than the pages of SQLite, where the values of each row are mixed (e.g.
-9 instead of 13 MB for the main dictionary), and the database takes a few seconds to build.
+with the SQL creating them and their number of rows; then, for each block of BLOCK_ROWS rows of each
+table, each column is a line: a JSON array of its values. Columns compress much better than the pages
+of SQLite, where the values of each row are mixed (e.g. 9 instead of 13 MB for the main dictionary),
+and the database takes a few seconds to build. The blocks keep the lines short, since the add-on
+reads them in a background thread, and parsing a long line would block Anki's interface meanwhile.
 
 Some columns are encoded so that they compress better:
 - 'delta': integers, as the differences with the previous ones (e.g. for sorted IDs);
 - {'json': [fields]}: JSON objects, as one column per field (e.g. the writings, readings and senses
   of entries), with null for missing fields;
-- {'int16 rows': width}: matrices of 16-bit integers (other values are kept as is), each row as the
-  differences with the previous one; the add-on reads them as little-endian (see analyzer.py).
+- {'int16 rows': width}: matrices of 16-bit integers (other values are kept as is), replaced by
+  {'int16': height} and followed by one line per row, as the differences with the previous row; the
+  add-on reads them as little-endian (see analyzer.py).
 
 A patch, which updates a database from one version to the next, has the same format, but only lists
 the rows that were added or changed in each table, and the primary keys of those that were removed.
@@ -22,7 +25,15 @@ import lzma
 import sqlite3
 import sys
 from array import array
-from typing import IO, Any
+from collections.abc import Callable
+from typing import IO, TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+BLOCK_ROWS = 16384
+# called with the number of rows read so far, and the total
+Progress = Callable[[int, int], None]
 
 
 def _dumps(value: Any) -> str:
@@ -55,15 +66,20 @@ def encode(values: list[Any], encoding: Any) -> list[str]:
     if 'int16 rows' in encoding:
         width = encoding['int16 rows']
         encoded = []
+        matrix_lines = []
         for value in values:
             if isinstance(value, bytes):
                 matrix = _int16_array(value)
+                height = len(matrix) // width
+                encoded.append({'int16': height})
                 # NOTE: the differences may not fit in 16 bits
-                deltas = [matrix[i] - (matrix[i - width] if i >= width else 0) for i in range(len(matrix))]
-                encoded.append({'int16': deltas})
+                matrix_lines.extend(
+                    _dumps([matrix[i] - (matrix[i - width] if i >= width else 0) for i in range(start, start + width)])
+                    for start in range(0, height * width, width)
+                )
             else:
                 encoded.append(value)
-        return [_dumps(encoded)]
+        return [_dumps(encoded), *matrix_lines]
     msg = f'unknown encoding {encoding}'
     raise ValueError(msg)
 
@@ -88,10 +104,12 @@ def decode(lines: IO[str], encoding: Any) -> list[Any]:
         decoded = []
         for value in json.loads(lines.readline()):
             if isinstance(value, dict):
-                values = value['int16']
-                for i in range(width, len(values)):
-                    values[i] += values[i - width]
-                decoded.append(_int16_bytes(array('h', values)))
+                matrix = array('h')
+                previous = [0] * width
+                for _ in range(value['int16']):
+                    previous = [p + d for p, d in zip(previous, json.loads(lines.readline()))]
+                    matrix.extend(previous)
+                decoded.append(_int16_bytes(matrix))
             else:
                 decoded.append(value)
         return decoded
@@ -110,9 +128,10 @@ def write_package(db_path: str, path: str, encodings: dict[str, dict[str, Any]])
             columns = [column[1] for column in db.execute(f'PRAGMA table_info({name})')]
             rows = db.execute(f'SELECT * FROM {name}').fetchall()
             table_encodings = encodings.get(name, {})
-            header['tables'].append({'name': name, 'sql': sql, 'columns': columns, 'encodings': table_encodings})
-            for i, column in enumerate(columns):
-                lines.extend(encode([row[i] for row in rows], table_encodings.get(column)))
+            header['tables'].append({
+                'name': name, 'sql': sql, 'columns': columns, 'encodings': table_encodings, 'rows': len(rows),
+            })
+            lines.extend(_encode_rows(rows, columns, table_encodings))
     finally:
         db.close()
     with lzma.open(path, 'wt', encoding='utf-8', preset=9 | lzma.PRESET_EXTREME) as f:
@@ -120,17 +139,40 @@ def write_package(db_path: str, path: str, encodings: dict[str, dict[str, Any]])
             f.write(line + '\n')
 
 
-def read_package(path: str, db_path: str) -> None:
+def _encode_rows(rows: list[Any], columns: list[str], encodings: dict[str, Any]) -> Iterator[str]:
+    for start in range(0, len(rows), BLOCK_ROWS):
+        block = rows[start:start + BLOCK_ROWS]
+        for i, column in enumerate(columns):
+            yield from encode([row[i] for row in block], encodings.get(column))
+
+
+def _decode_rows(lines: IO[str], table: dict[str, Any]) -> Iterator[list[tuple[Any, ...]]]:
+    """The rows of a table, by block"""
+    for start in range(0, table['rows'], BLOCK_ROWS):
+        columns = [decode(lines, table['encodings'].get(column)) for column in table['columns']]
+        block = list(zip(*columns))
+        if len(block) != min(BLOCK_ROWS, table['rows'] - start):
+            msg = f'unexpected number of rows in table {table["name"]}'
+            raise ValueError(msg)
+        yield block
+
+
+def read_package(path: str, db_path: str, progress: Progress | None = None) -> None:
     """Create the database at db_path from a package"""
     db = sqlite3.connect(db_path)
     try:
         with lzma.open(path, 'rt', encoding='utf-8') as lines:
             header = json.loads(lines.readline())
+            total = sum(table['rows'] for table in header['tables'])
+            done = 0
             for table in header['tables']:
                 db.execute(table['sql'])
-                columns = [decode(lines, table['encodings'].get(column)) for column in table['columns']]
-                placeholders = ', '.join('?' * len(columns))
-                db.executemany(f'INSERT INTO {table["name"]} VALUES ({placeholders})', zip(*columns))
+                placeholders = ', '.join('?' * len(table['columns']))
+                for block in _decode_rows(lines, table):
+                    db.executemany(f'INSERT INTO {table["name"]} VALUES ({placeholders})', block)
+                    done += len(block)
+                    if progress is not None:
+                        progress(done, total)
         db.commit()
     finally:
         db.close()
@@ -182,10 +224,9 @@ def write_patch(old_path: str, new_path: str, path: str, encodings: dict[str, di
             table_encodings = encodings.get(name, {})
             header['tables'].append({
                 'name': name, 'sql': sql, 'columns': columns, 'key': key, 'encodings': table_encodings,
-                'removed': removed,
+                'rows': len(changed), 'removed': removed,
             })
-            for i, column in enumerate(columns):
-                lines.extend(encode([row[i] for row in changed], table_encodings.get(column)))
+            lines.extend(_encode_rows(changed, columns, table_encodings))
         # tables that were removed are left as they are
     finally:
         old.close()
@@ -209,7 +250,7 @@ def apply_patch(path: str, db_path: str) -> dict[str, list[tuple[Any, ...]]]:
             for table in header['tables']:
                 name, columns, key = table['name'], table['columns'], table['key']
                 db.execute(table['sql'].replace('CREATE TABLE', 'CREATE TABLE IF NOT EXISTS', 1))
-                rows = list(zip(*(decode(lines, table['encodings'].get(column)) for column in columns)))
+                rows = [row for block in _decode_rows(lines, table) for row in block]
                 removed = [tuple(k) for k in table['removed']]
                 where = ' AND '.join(f'{column} = ?' for column in key)
                 db.executemany(f'DELETE FROM {name} WHERE {where}', removed)

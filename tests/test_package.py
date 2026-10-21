@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
+from japanote import package
 from japanote.package import PatchError, apply_patch, read_package, write_package, write_patch
 
 if TYPE_CHECKING:
@@ -58,13 +59,21 @@ NEW = {
 
 
 def test_package(tmp_path: Path) -> None:
+    tmp_path.mkdir(exist_ok=True)
     original = make_database(tmp_path / 'original.sqlite', '1', OLD)
     write_package(original, str(tmp_path / 'package.xz'), ENCODINGS)
     read_package(str(tmp_path / 'package.xz'), str(tmp_path / 'copy.sqlite'))
     assert dump(str(tmp_path / 'copy.sqlite')) == dump(original)
 
 
+def test_blocks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(package, 'BLOCK_ROWS', 2)
+    test_package(tmp_path / 'package')
+    test_patch(tmp_path / 'patch')
+
+
 def test_patch(tmp_path: Path) -> None:
+    tmp_path.mkdir(exist_ok=True)
     old = make_database(tmp_path / 'old.sqlite', '1', OLD)
     new = make_database(tmp_path / 'new.sqlite', '2', NEW, extra_table=True)
     write_patch(old, new, str(tmp_path / 'patch.xz'), ENCODINGS)
