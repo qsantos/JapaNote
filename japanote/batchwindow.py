@@ -105,7 +105,9 @@ class BatchWindow(QMainWindow):
         self.table.setHorizontalHeaderLabels(self.COLUMNS)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.table.setWordWrap(True)
+        # one line per word, with the whole definition in its tooltip: wrapped, the rows would get the height of the
+        # definitions in the columns they had before the window was shown
+        self.table.setWordWrap(False)
         header = self.table.horizontalHeader()
         assert header is not None
         header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
@@ -218,7 +220,9 @@ class BatchWindow(QMainWindow):
 
     def set_cells(self, row: int, *texts: str) -> None:
         for column, text in enumerate(texts, start=2):
-            self.table.setItem(row, column, QTableWidgetItem(text))
+            item = QTableWidgetItem(text)
+            item.setToolTip(text)
+            self.table.setItem(row, column, item)
 
     def checked_rows(self) -> list[int]:
         rows = []
