@@ -16,6 +16,7 @@ FIELDS = {
     'pitch': 'Put pitch accent in',
     'audio': 'Put audio in',
     'example': 'Put example sentence in',
+    'kanji_details': 'Put kanji details in',
 }
 # settings of JapaNote 1 (stored in col.conf); they are copied, but kept for older versions
 OLD_KEYS = {

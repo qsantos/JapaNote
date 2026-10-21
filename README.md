@@ -13,9 +13,9 @@ can also open a text or CSV file (taking its first column): each line is looked 
 another one when there are several, and skip the words that already have a note, before adding them all at once.
 
 Optionally, notes can also get the pitch accent of the word, an example sentence with its translation (for about
-29,000 words, from Tatoeba, with the word in bold), and a recording by a native speaker from
-[Lingua Libre](https://lingualibre.org/) when there is one (it is fetched in the background, and added to the note a
-few seconds later). New notes are tagged `japanote` by default, as well as with their JLPT level (e.g. `JLPT::N3`)
+29,000 words, from Tatoeba, with the word in bold), the meanings and readings of its kanji, and a recording by a
+native speaker from [Lingua Libre](https://lingualibre.org/) when there is one (it is fetched in the background, and
+added to the note a few seconds later). New notes are tagged `japanote` by default, as well as with their JLPT level (e.g. `JLPT::N3`)
 and `common` for common words.
 
 ## Dictionaries

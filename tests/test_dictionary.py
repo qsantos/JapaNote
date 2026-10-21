@@ -3,7 +3,7 @@ import sqlite3
 import pytest
 
 from japanote.deinflect import Deinflector
-from japanote.dictionary import Dictionary, Example, search_words
+from japanote.dictionary import Dictionary, Example, Kanji, search_words
 
 
 def test_lookup(jmdict: Dictionary) -> None:
@@ -85,3 +85,20 @@ def test_example_html() -> None:
     # the form is not always in the sentence as is
     assert Example('<a>', 'b & c', 'x').html() == '&lt;a&gt;<br>b &amp; c'
 
+
+def test_kanji(jmdict: Dictionary) -> None:
+    try:
+        jmdict.db.execute('SELECT info FROM kanji')
+    except sqlite3.OperationalError:
+        pytest.skip('dictionary built before the details of the kanji')
+    details = jmdict.kanji('暗記した暗')
+    assert [kanji.literal for kanji in details] == ['暗', '記']
+    assert 'darkness' in details[0].meanings
+    assert 'アン' in details[0].on
+    assert 'くら.い' in details[0].kun
+
+
+def test_kanji_html() -> None:
+    kanji = Kanji('暗', ['darkness', 'shade'], ['アン'], ['くら.い', 'くら.む'])
+    assert kanji.html() == '<b>暗</b> darkness, shade (アン; くら.い, くら.む)'
+    assert Kanji('々', ['repetition'], [], []).html() == '<b>々</b> repetition'

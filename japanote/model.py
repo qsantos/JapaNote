@@ -85,7 +85,10 @@ def fill_note(note: Note, word: Word, fields: dict[str, str], conf: dict[str, An
         # filled later (see add_audio_later)
         'audio': '',
         'example': '',
+        'kanji_details': '',
     }
+    if 'kanji_details' in fields:
+        values['kanji_details'] = '<br>'.join(kanji.html() for kanji in resources.jmdict.kanji(word.kanji))
     if 'example' in fields:
         example = resources.jmdict.example(word.id)
         values['example'] = example.html() if example else ''

@@ -6,7 +6,7 @@ dictionaries into SQLite databases, which are published as packages, in a format
 well, as release assets (see japanote/package.py and .github/workflows/dictionaries.yml).
 
 Two databases are built, both with only the furigana that the add-on would not guess by itself:
-- jmdict: JMdict (vocabulary), JmdictFurigana, KANJIDIC2 (kanji readings, for furigana), JLPT levels
+- jmdict: JMdict (vocabulary), JmdictFurigana, KANJIDIC2 (kanji, for furigana and details), JLPT levels
   from Jonathan Waller's lists (with JMdict IDs from yomitan-jlpt-vocab), pitch accents from Kanjium,
   example sentences from Tatoeba, and the IPA dictionary, as compiled by Janome, for the sentence
   analyzer (see japanote/analyzer.py);
@@ -97,8 +97,9 @@ CREATE TABLE entry (id INTEGER PRIMARY KEY, rank INTEGER NOT NULL, data TEXT NOT
 CREATE TABLE furigana (
     text TEXT NOT NULL, reading TEXT NOT NULL, segments TEXT NOT NULL, PRIMARY KEY (text, reading)
 ) WITHOUT ROWID;
--- readings is a JSON list of the on, kun and nanori readings, as in KANJIDIC2
-CREATE TABLE kanji (literal TEXT PRIMARY KEY, readings TEXT NOT NULL) WITHOUT ROWID;
+-- readings is a JSON list of the on, kun and nanori readings, as in KANJIDIC2, for furigana; info is a JSON
+-- object with the first meanings (m), and the on and kun readings, to show (see parse_kanjidic)
+CREATE TABLE kanji (literal TEXT PRIMARY KEY, readings TEXT NOT NULL, info TEXT NOT NULL) WITHOUT ROWID;
 -- level is 1 for N1 to 5 for N5; these lists are unofficial
 CREATE TABLE jlpt (entry INTEGER PRIMARY KEY, level INTEGER NOT NULL);
 -- accents is the list of the positions of the accent, separated by commas (e.g. '0' for 東京 [とうきょう])
@@ -119,6 +120,8 @@ CREATE TABLE example (
 );
 """
 
+# meanings kept for each kanji, the most important first
+MAX_KANJI_MEANINGS = 4
 # preferred length of the example sentences, in characters
 EXAMPLE_LENGTH = 15
 # priorities that make a word "common", like the (P) marker of EDICT
@@ -216,17 +219,21 @@ def parse_furigana(path: str) -> Iterator[tuple[str, str, str]]:
         yield item['text'], item['reading'], json.dumps(segments, ensure_ascii=False, separators=(',', ':'))
 
 
-def parse_kanjidic(path: str) -> Iterator[tuple[str, str]]:
+def parse_kanjidic(path: str) -> Iterator[tuple[str, str, str]]:
+    """Rows of the kanji table"""
     root = read_xml(path)
     for character in root.iter('character'):
         literal = character.findtext('literal') or ''
-        readings = [
-            reading.text or ''
-            for reading in character.iter('reading')
-            if reading.get('r_type') in ('ja_on', 'ja_kun')
-        ]
-        readings += texts(character, 'nanori')
-        yield literal, json.dumps(readings, ensure_ascii=False, separators=(',', ':'))
+        on = [reading.text or '' for reading in character.iter('reading') if reading.get('r_type') == 'ja_on']
+        kun = [reading.text or '' for reading in character.iter('reading') if reading.get('r_type') == 'ja_kun']
+        # in English, which has no m_lang attribute
+        meanings = [meaning.text or '' for meaning in character.iter('meaning') if meaning.get('m_lang') is None]
+        info = compact({'m': meanings[:MAX_KANJI_MEANINGS], 'on': on, 'kun': kun})
+        yield (
+            literal,
+            json.dumps(on + kun + texts(character, 'nanori'), ensure_ascii=False, separators=(',', ':')),
+            json.dumps(info, ensure_ascii=False, separators=(',', ':')),
+        )
 
 
 def parse_jlpt(paths: dict[int, str]) -> Iterator[tuple[int, int]]:
@@ -408,7 +415,7 @@ def load_module(name: str) -> types.ModuleType:
     return importlib.import_module(f'japanote.{name}')
 
 
-def furigana_differ(kanjidic: Iterable[tuple[str, str]]) -> Callable[[str, str, str], bool]:
+def furigana_differ(kanjidic: Iterable[tuple[str, str, str]]) -> Callable[[str, str, str], bool]:
     """Return whether the known furigana of a text differ from those the add-on would guess
 
     Most furigana can be guessed from the readings of the kanji (94% for JMdict, 97% for JMnedict),
@@ -417,7 +424,7 @@ def furigana_differ(kanjidic: Iterable[tuple[str, str]]) -> Callable[[str, str, 
     furigana = load_module('furigana')
     readings = {
         literal: furigana.kanji_readings_from_kanjidic(json.loads(kanji_readings))
-        for literal, kanji_readings in kanjidic
+        for literal, kanji_readings, _ in kanjidic
     }
 
     def differ(text: str, reading: str, segments: str) -> bool:

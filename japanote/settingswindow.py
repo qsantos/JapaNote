@@ -32,6 +32,7 @@ EXAMPLES = {
     'pitch': 'あ‾んき',
     'audio': '[sound:…] (when available)',
     'example': "この詩を暗記しましょう。 Let's learn this poem by heart.",
+    'kanji_details': '暗 darkness (アン; くら.い), 記 scribe (キ; しる.す)',
 }
 
 

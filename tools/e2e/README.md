@@ -6,8 +6,8 @@ uses it as a user would, and checks the results:
 - the settings of JapaNote 1 are migrated;
 - the dictionary is downloaded at startup, with the progress shown below the input field;
 - the deck of each card type can be set in the settings, and the credits window opens;
-- words are added, with their tags, pitch accent and audio (downloaded from Lingua Libre), without
-  duplicates, including of the notes added by JapaNote 1;
+- words are added, with their tags, pitch accent, example sentence, kanji details and audio
+  (downloaded from Lingua Libre), without duplicates, including of the notes added by JapaNote 1;
 - a word with several matches opens the search window;
 - a proper noun downloads the names dictionary, then is added;
 - a sentence, or a word only on Wikipedia, opens the preview;

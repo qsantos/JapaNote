@@ -49,6 +49,21 @@ class Example:
 
 
 @dataclass
+class Kanji:
+    """The details of a kanji, from KANJIDIC2"""
+    literal: str
+    meanings: list[str]
+    on: list[str]
+    kun: list[str]
+
+    def html(self) -> str:
+        """e.g. '<b>暗</b> darkness, shade (アン; くら.い, くら.む)'"""
+        readings = '; '.join(', '.join(readings) for readings in (self.on, self.kun) if readings)
+        text = ', '.join(self.meanings) + (f' ({readings})' if readings else '')
+        return f'<b>{escape(self.literal)}</b> {escape(text, quote=False)}'
+
+
+@dataclass
 class Word:
     """What a note is made from"""
     kanji: str
@@ -200,6 +215,21 @@ class Dictionary:
         readings = kanji_readings_from_kanjidic(json.loads(row[0])) if row else []
         self._kanji_readings[c] = readings
         return readings
+
+    def kanji(self, text: str) -> list[Kanji]:
+        """The details of the kanji of text, in order, without repetitions"""
+        details = []
+        for c in dict.fromkeys(text):
+            query = 'SELECT info FROM kanji WHERE literal = ?'
+            try:
+                row = self.kanji_source.db.execute(query, (c,)).fetchone()
+            except sqlite3.OperationalError:
+                # a dictionary from before the details, until it is updated
+                return []
+            if row is not None:
+                info = json.loads(row[0])
+                details.append(Kanji(c, info.get('m', []), info.get('on', []), info.get('kun', [])))
+        return details
 
     def known_furigana(self, text: str, reading: str) -> list[Segment] | None:
         query = 'SELECT segments FROM furigana WHERE text = ? AND reading = ?'
