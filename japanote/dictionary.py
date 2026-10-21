@@ -56,17 +56,11 @@ class Kanji:
     on: list[str]
     kun: list[str]
 
-    def text(self) -> str:
-        """e.g. '暗 darkness, shade (アン; くら.い, くら.む)'"""
+    def html(self) -> str:
+        """e.g. '<b>暗</b> darkness, shade (アン; くら.い, くら.む)'"""
         readings = '; '.join(', '.join(readings) for readings in (self.on, self.kun) if readings)
-        return f'{self.literal} ' + ', '.join(self.meanings) + (f' ({readings})' if readings else '')
-
-
-def kanji_details_html(lines: list[str]) -> str:
-    """The details of kanji, one per line, each starting with the kanji, which is put in bold (see Kanji.text)"""
-    return '<br>'.join(
-        f'<b>{escape(line[0], quote=False)}</b>{escape(line[1:], quote=False)}' for line in lines if line
-    )
+        text = ', '.join(self.meanings) + (f' ({readings})' if readings else '')
+        return f'<b>{escape(self.literal)}</b> {escape(text, quote=False)}'
 
 
 @dataclass
@@ -89,10 +83,6 @@ class Word:
     # when the word was found from an inflected form: that form, and its inflections (e.g. 'polite past')
     inflected: str = ''
     inflection: str = ''
-    # the example sentence, and the details of the kanji (see Kanji.text), when they were edited (see
-    # previewwindow.py); otherwise, they are looked up when adding
-    example: Example | None = None
-    kanji_details: list[str] | None = None
 
     def __repr__(self) -> str:
         return f'<{self.kanji}>'

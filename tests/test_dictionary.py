@@ -3,7 +3,7 @@ import sqlite3
 import pytest
 
 from japanote.deinflect import Deinflector
-from japanote.dictionary import Dictionary, Example, Kanji, kanji_details_html, search_words
+from japanote.dictionary import Dictionary, Example, Kanji, search_words
 
 
 def test_lookup(jmdict: Dictionary) -> None:
@@ -84,10 +84,6 @@ def test_example_html() -> None:
     assert example.html() == "この詩を<b>暗記</b>しましょう。<br>Let's learn this poem by heart."
     # the form is not always in the sentence as is
     assert Example('<a>', 'b & c', 'x').html() == '&lt;a&gt;<br>b &amp; c'
-    # as edited in the preview
-    assert Example('', '', '暗記').html() == ''
-    assert Example('', 'memorization', '').html() == 'memorization'
-    assert Example('暗記した。', '', '').html() == '暗記した。'
 
 
 def test_kanji(jmdict: Dictionary) -> None:
@@ -102,10 +98,7 @@ def test_kanji(jmdict: Dictionary) -> None:
     assert 'くら.い' in details[0].kun
 
 
-def test_kanji_text() -> None:
+def test_kanji_html() -> None:
     kanji = Kanji('暗', ['darkness', 'shade'], ['アン'], ['くら.い', 'くら.む'])
-    assert kanji.text() == '暗 darkness, shade (アン; くら.い, くら.む)'
-    assert Kanji('々', ['repetition'], [], []).text() == '々 repetition'
-    assert kanji_details_html([kanji.text(), '記 <scribe>']) == (
-        '<b>暗</b> darkness, shade (アン; くら.い, くら.む)<br><b>記</b> &lt;scribe&gt;'
-    )
+    assert kanji.html() == '<b>暗</b> darkness, shade (アン; くら.い, くら.む)'
+    assert Kanji('々', ['repetition'], [], []).html() == '<b>々</b> repetition'

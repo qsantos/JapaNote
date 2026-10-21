@@ -1,32 +1,42 @@
 from __future__ import annotations
 
-from dataclasses import replace
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from aqt.qt import QDialog, QDialogButtonBox, QFormLayout, QLabel, QLineEdit, QPlainTextEdit, QVBoxLayout, QWidget
+from aqt import mw
+from aqt.editor import Editor, EditorMode
+from aqt.qt import QDialog, QDialogButtonBox, QKeySequence, QLabel, QShortcut, QVBoxLayout, QWidget
 
-from . import config, resources
-from .dictionary import Example, Word
-from .model import add_notes
+from . import config
+from .model import add_filled_notes, new_note
 from .view import window_to_front
+
+if TYPE_CHECKING:
+    from anki.notes import Note
+
+    from .dictionary import Word
 
 
 class PreviewWindow(QDialog):
-    """Review, and edit, a note before adding it"""
+    """Review, and edit, a note before adding it, in the editor of Anki"""
     instance: PreviewWindow | None = None
 
     @classmethod
     def edit(cls, word: Word, message: str = '') -> None:
+        note = new_note(word)
+        if note is None:
+            # the settings cannot be used, which new_note told
+            return
         if cls.instance is None:
             cls.instance = cls()
-        cls.instance.set_word(word, message)
+        cls.instance.set_note(word, note, message)
         window_to_front(cls.instance)
 
     def __init__(self) -> None:
         QDialog.__init__(self)
         self.setWindowTitle('JapaNote: add a note')
-        self.setMinimumWidth(650)
-        self.word = Word('', '', '')
+        self.resize(700, 650)
+        self.word: Word | None = None
+        self.note: Note | None = None
 
         layout = QVBoxLayout(self)
         self.message = QLabel()
@@ -34,85 +44,49 @@ class PreviewWindow(QDialog):
         self.message.setOpenExternalLinks(True)
         layout.addWidget(self.message)
 
-        form = QFormLayout()
-        layout.addLayout(form)
-        self.kanji = QLineEdit()
-        self.kana = QLineEdit()
-        self.furigana = QLineEdit()
-        self.definition = QPlainTextEdit()
-        self.definition.setPlaceholderText('One meaning per line')
-        self.example = QLineEdit()
-        self.example.setPlaceholderText('No example sentence')
-        self.translation = QLineEdit()
-        self.kanji_details = QPlainTextEdit()
-        self.kanji_details.setPlaceholderText('One kanji per line, starting with the kanji')
-        self.kanji_details.setMaximumHeight(120)
-        form.addRow('Kanji', self.kanji)
-        form.addRow('Kana', self.kana)
-        form.addRow('Furigana', self.furigana)
-        form.addRow('Definition', self.definition)
-        # rows of the optional fields, only shown when notes have them (see set_word)
-        self.optional_rows: dict[str, list[QWidget]] = {}
-        for role, label, widget in [
-            ('example', 'Example', self.example),
-            ('example', 'Translation', self.translation),
-            ('kanji_details', 'Kanji details', self.kanji_details),
-        ]:
-            label_widget = QLabel(label)
-            form.addRow(label_widget, widget)
-            self.optional_rows.setdefault(role, []).extend([label_widget, widget])
+        # the fields, and the tags, as in the Add window of Anki, which does not save the note
+        fields_area = QWidget()
+        layout.addWidget(fields_area, 1)
+        assert mw is not None
+        self.editor = Editor(mw, fields_area, self, editor_mode=EditorMode.ADD_CARDS)
 
         buttons = QDialogButtonBox()
-        add_button = buttons.addButton('Add', QDialogButtonBox.ButtonRole.AcceptRole)
-        assert add_button is not None
-        add_button.setDefault(True)
+        self.add_button = buttons.addButton('Add', QDialogButtonBox.ButtonRole.AcceptRole)
+        assert self.add_button is not None
+        self.add_button.setDefault(True)
+        self.add_button.setToolTip('Add (Ctrl+Enter)')
         buttons.addButton(QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(self.on_add)
         buttons.rejected.connect(self.close)
         layout.addWidget(buttons)
+        # like in the Add window of Anki, where Enter goes to the field being edited
+        QShortcut(QKeySequence('Ctrl+Return'), self).activated.connect(self.on_add)
 
-    def set_word(self, word: Word, message: str) -> None:
+    def set_note(self, word: Word, note: Note, message: str) -> None:
         self.word = word
+        self.note = note
+        audio_field = config.get()['fields']['audio']
+        if audio_field and word.id:
+            what = 'A recording is looked up after adding the note'
+            message += f'{"<br>" if message else ""}{what}, unless the {audio_field} field is filled.'
         self.message.setText(message)
         self.message.setVisible(bool(message))
-        self.kanji.setText(word.kanji)
-        self.kana.setText(word.kana)
-        self.furigana.setText(word.furigana)
-        self.definition.setPlainText('\n'.join(word.meanings))
-        example = word.example or resources.jmdict.example(word.id) or Example('', '', '')
-        self.example.setText(example.japanese)
-        self.translation.setText(example.english)
-        # e.g. 食べた for 食べる, to show it in bold
-        self.example_form = example.form or word.kanji
-        if word.kanji_details is None:
-            self.kanji_details.setPlainText('\n'.join(kanji.text() for kanji in resources.jmdict.kanji(word.kanji)))
-        else:
-            self.kanji_details.setPlainText('\n'.join(word.kanji_details))
-        fields = config.get()['fields']
-        for role, widgets in self.optional_rows.items():
-            for widget in widgets:
-                widget.setVisible(bool(fields[role]))
-        self.furigana.setFocus()
+        self.editor.set_note(note)
+        # so that Enter adds the note, which is the most common
+        self.add_button.setFocus()
 
     def on_add(self) -> None:
-        meanings = [line.strip() for line in self.definition.toPlainText().splitlines() if line.strip()]
-        word = replace(
-            self.word,
-            kanji=self.kanji.text().strip(),
-            kana=self.kana.text().strip(),
-            furigana=self.furigana.text().strip(),
-            meanings=meanings,
-            example=Example(self.example.text().strip(), self.translation.text().strip(), self.example_form),
-            kanji_details=[
-                line.strip() for line in self.kanji_details.toPlainText().splitlines() if line.strip()
-            ],
-        )
-        if add_notes([word]):
+        # the editor saves the field being edited to the note before
+        self.editor.call_after_note_saved(self.add)
+
+    def add(self) -> None:
+        if self.word is not None and self.note is not None and add_filled_notes([(self.word, self.note)]):
             self.close()
 
     def reject(self) -> None:
         self.close()
 
     def closeEvent(self, event: Any) -> None:
+        self.editor.cleanup()
         type(self).instance = None
         event.accept()

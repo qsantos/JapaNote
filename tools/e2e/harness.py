@@ -137,8 +137,9 @@ def confirm() -> str:
     if preview is None:
         return ''
     message = preview.message.text()
-    log('  preview:', message, '|', preview.kanji.text(), '|', preview.furigana.text())
-    preview.on_add()
+    log('  preview:', message, '|', preview.note['Expression'], '|', preview.note['Furigana'])
+    # NOTE: without saving the editor first, which is asynchronous (see the Wikipedia step)
+    preview.add()
     # it stays open when nothing was added (e.g. a duplicate)
     if PreviewWindow.instance is not None:
         PreviewWindow.instance.close()
@@ -270,7 +271,7 @@ def _() -> Wait:
         enter = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Return, Qt.KeyboardModifier.NoModifier)
         QApplication.sendEvent(window.table, enter)
         preview = PreviewWindow.instance
-        check(preview is not None and preview.kanji.text() == '紙', 'Enter opens the preview of the first match')
+        check(preview is not None and preview.note['Expression'] == '紙', 'Enter opens the preview of the first match')
         if preview is not None:
             preview.close()
         window.close()
@@ -306,11 +307,11 @@ def _() -> Wait:
 @step('the sentence is added')
 def _() -> Wait:
     window = PreviewWindow.instance
-    furigana = window.furigana.text()
-    log('  preview:', window.message.text(), '|', window.kanji.text(), '|', window.kana.text(), '|', furigana)
+    furigana = window.note['Furigana']
+    log('  preview:', window.message.text(), '|', window.note['Reading'], '|', furigana)
     check('大[おお]晦日[みそか]' in furigana, 'furigana of the sentence')
-    window.definition.setPlainText("Since it is New Year's Eve today, I went home early.")
-    window.on_add()
+    window.note['Meaning'] = "Since it is New Year's Eve today, I went home early."
+    window.add()
     check(PreviewWindow.instance is None, 'the preview closes')
     check(find('今日は大晦日なので、早く帰りました。'), 'added')
     return None
@@ -322,25 +323,35 @@ def _() -> Wait:
     return lambda: PreviewWindow.instance is not None
 
 
-@step('the technical word is added')
+@step('the technical word is edited, then added with the Add button')
 def _() -> Wait:
     window = PreviewWindow.instance
-    log('  preview:', window.message.text(), '|', window.kana.text(), '|', window.definition.toPlainText())
-    check(window.definition.toPlainText(), 'meaning from Wikipedia')
-    check(window.example.isVisible() and not window.example.text(), 'no example sentence, but one can be written')
-    details = window.kanji_details.toPlainText().splitlines()
-    check(window.kanji_details.isVisible() and [line[0] for line in details] == list('微分幾何学'), 'kanji details')
+    note = window.note
+    log('  preview:', window.message.text(), '|', note['Reading'], '|', note['Meaning'])
+    check(note['Meaning'], 'meaning from Wikipedia')
+    check(not note['Example'], 'no example sentence')
+    check(note['Kanji'].startswith('<b>微</b>') and note['Kanji'].count('<br>') == 4, 'kanji details')
+    check('japanote' in note.tags, f'tags: {note.tags}')
     window.grab().save(os.path.join(BASE_DIR, 'screenshot-preview.png'))
-    window.kanji_details.setPlainText('微 delicate\n分 part')
-    window.example.setText('微分幾何学を勉強する。')
-    window.translation.setText('I study differential geometry.')
-    window.on_add()
+    # as if edited in the editor
+    note['Kanji'] = '<b>微</b> delicate<br><b>分</b> part'
+    note['Example'] = '<b>微分幾何学</b>を勉強する。<br>I study differential geometry.'
+    note.tags.append('maths')
+    window.editor.loadNote()
+    window.add_button.click()
+    return lambda: PreviewWindow.instance is None
+
+
+@step('the technical word, as edited')
+def _() -> Wait:
     added = find('微分幾何学')
     check(added, 'added')
     example = mw.col.get_note(mw.col.find_notes('Expression:微分幾何学')[0])['Example'] if added else ''
     check(example == '<b>微分幾何学</b>を勉強する。<br>I study differential geometry.', f'example: {example}')
     details = mw.col.get_note(mw.col.find_notes('Expression:微分幾何学')[0])['Kanji'] if added else ''
     check(details == '<b>微</b> delicate<br><b>分</b> part', f'edited kanji details: {details}')
+    tags = mw.col.get_note(mw.col.find_notes('Expression:微分幾何学')[0]).tags if added else []
+    check('maths' in tags, f'edited tags: {tags}')
     return None
 
 
@@ -438,7 +449,7 @@ def _() -> Wait:
     BatchWindow.instance.on_sentence()
     check(BatchWindow.instance is None, 'the list window closes')
     preview = PreviewWindow.instance
-    check(preview is not None and preview.kanji.text() == '今日は大晦日です。', 'the preview of the joined lines')
+    check(preview is not None and preview.note['Expression'] == '今日は大晦日です。', 'the preview of the lines')
     if preview is not None:
         preview.close()
     return None

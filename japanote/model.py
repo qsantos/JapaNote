@@ -12,7 +12,7 @@ from aqt.utils import showInfo, tooltip
 
 from . import audio, config, resources
 from .collection import get_collection
-from .dictionary import Word, kanji_details_html, search_words
+from .dictionary import Word, search_words
 from .pitch import pitches_html
 from .settingswindow import SettingsWindow
 
@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from concurrent.futures import Future
 
+    from anki.models import NotetypeDict
     from anki.notes import Note, NoteId
 
 
@@ -88,12 +89,9 @@ def fill_note(note: Note, word: Word, fields: dict[str, str], conf: dict[str, An
         'kanji_details': '',
     }
     if 'kanji_details' in fields:
-        lines = word.kanji_details
-        if lines is None:
-            lines = [kanji.text() for kanji in resources.jmdict.kanji(word.kanji)]
-        values['kanji_details'] = kanji_details_html(lines)
+        values['kanji_details'] = '<br>'.join(kanji.html() for kanji in resources.jmdict.kanji(word.kanji))
     if 'example' in fields:
-        example = word.example or resources.jmdict.example(word.id)
+        example = resources.jmdict.example(word.id)
         values['example'] = example.html() if example else ''
     for role, name in fields.items():
         note[name] = values[role]
@@ -122,46 +120,77 @@ def existing_ids(field_name: str, word_ids: list[str]) -> set[str]:
     return found
 
 
-def is_duplicate(note: Note, word: Word, fields: dict[str, str]) -> bool:
-    if 'id' in fields and word.id:
-        return find_by_id(fields['id'], word.id)
+def is_duplicate(note: Note, fields: dict[str, str]) -> bool:
+    """Whether another note has the JMdict ID of note, or else, the same first field"""
+    if 'id' in fields and note[fields['id']].strip():
+        return find_by_id(fields['id'], note[fields['id']].strip())
     return note.fields_check() == NoteFieldsCheckResult.DUPLICATE
+
+
+def note_settings(show_problem: bool = True) -> tuple[dict[str, Any], NotetypeDict, dict[str, str]] | None:
+    """The settings, note type, and fields (by role) of new notes, unless they are unusable"""
+    conf = config.get()
+    problem = settings_problem(conf)
+    if problem is not None:
+        if show_problem:
+            showInfo(problem)
+            SettingsWindow.open()
+        return None
+    model = get_collection().models.by_name(conf['model'])
+    assert model is not None
+    return conf, model, {role: name for role, name in conf['fields'].items() if name}
+
+
+def new_note(word: Word) -> Note | None:
+    """The note that would be added for word (see add_notes), unless the settings are unusable"""
+    settings = note_settings()
+    if settings is None:
+        return None
+    conf, model, fields = settings
+    note = get_collection().new_note(model)
+    fill_note(note, word, fields, conf)
+    return note
 
 
 def find_duplicates(words: list[Word]) -> list[bool]:
     """Whether each word already has a note (none, when no note can be added with the settings)"""
-    col = get_collection()
-    conf = config.get()
-    if settings_problem(conf) is not None:
+    settings = note_settings(show_problem=False)
+    if settings is None:
         return [False] * len(words)
-    model = col.models.by_name(conf['model'])
-    assert model is not None
-    fields = {role: name for role, name in conf['fields'].items() if name}
+    conf, model, fields = settings
     ids = existing_ids(fields['id'], [word.id for word in words if word.id]) if 'id' in fields else set()
     duplicates = []
     for word in words:
         if 'id' in fields and word.id:
             duplicates.append(word.id in ids)
             continue
-        note = col.new_note(model)
+        note = get_collection().new_note(model)
         fill_note(note, word, fields, conf)
-        duplicates.append(is_duplicate(note, word, fields))
+        duplicates.append(is_duplicate(note, fields))
     return duplicates
 
 
 def add_notes(words: Iterable[Word]) -> int:
     """Add a note for each word, and return the number of new cards"""
-    col = get_collection()
-    conf = config.get()
-    problem = settings_problem(conf)
-    if problem is not None:
-        showInfo(problem)
-        SettingsWindow.open()
+    settings = note_settings()
+    if settings is None:
         return 0
-    model = col.models.by_name(conf['model'])
-    assert model is not None
-    fields = {role: name for role, name in conf['fields'].items() if name}
+    conf, model, fields = settings
+    notes = []
+    for word in words:
+        note = get_collection().new_note(model)
+        fill_note(note, word, fields, conf)
+        notes.append((word, note))
+    return add_filled_notes(notes)
 
+
+def add_filled_notes(notes: Iterable[tuple[Word, Note]]) -> int:
+    """Add notes (e.g. as edited in the preview), each made for a word, and return the number of new cards"""
+    col = get_collection()
+    settings = note_settings()
+    if settings is None:
+        return 0
+    conf, _, fields = settings
     deck_id = col.decks.id_for_name(conf['deck']) if conf['deck'] else None
     if deck_id is None:
         deck_id = col.decks.get_current_id()
@@ -169,10 +198,8 @@ def add_notes(words: Iterable[Word]) -> int:
     n_new_cards = 0
     added: list[Word] = []
     duplicates: list[Word] = []
-    for word in words:
-        note = col.new_note(model)
-        fill_note(note, word, fields, conf)
-        if is_duplicate(note, word, fields):
+    for word, note in notes:
+        if is_duplicate(note, fields):
             duplicates.append(word)
             continue
 
@@ -180,8 +207,8 @@ def add_notes(words: Iterable[Word]) -> int:
         col.add_note(note, deck_id)
         n_new_cards += len(note.card_ids())
         added.append(word)
-        # sentences (without ID) are never recorded
-        if 'audio' in fields and word.id:
+        # sentences (without ID) are never recorded, nor notes that already have a recording
+        if 'audio' in fields and word.id and not note[fields['audio']].strip():
             add_audio_later(note.id, fields['audio'], [word.kanji, word.kana])
 
     if n_new_cards == 0:
