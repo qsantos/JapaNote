@@ -1,0 +1,43 @@
+# Lint and type-check the code, and run the tests against the published dictionaries, with the oldest and the
+# newest Python of the supported versions of Anki (see README.md)
+name: Checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.13']
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install
+        run: uv sync --locked
+
+      - name: Lint
+        run: uv run ruff check
+
+      - name: Type-check
+        run: uv run mypy japanote tests tools
+
+      - name: Download the dictionaries
+        run: |
+          format=$(sed -n 's/^FORMAT = //p' japanote/dictionary.py)
+          base=https://github.com/${{ github.repository }}/releases/download/dictionaries
+          mkdir dist
+          curl -fsSL "$base/manifest-v$format.json" -o dist/manifest.json
+          for url in $(jq -r '.dictionaries[].url' dist/manifest.json); do
+            curl -fsSL "$url" -o "dist/$(basename "$url")"
+          done
+          uv run python tools/build_dictionaries.py install dist db
+
+      - name: Test
+        run: JAPANOTE_DB_DIR=db uv run pytest tests
