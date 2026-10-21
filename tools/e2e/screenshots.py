@@ -1,6 +1,8 @@
 # mypy: disable-error-code="union-attr, index, arg-type, attr-defined, list-item"
 """An add-on that takes the screenshots of the listing of JapaNote on AnkiWeb
 
+They show what JapaNote fills by itself from what is typed, without any edit.
+
 Run it like the harness, but with this file (see README.md); it sets up a note type with every field that JapaNote
 fills, adds a few words, then saves the screenshots in the base directory, in the theme given by
 JAPANOTE_SCREENSHOTS_THEME (light, the default, or dark).
@@ -32,7 +34,6 @@ THEME = os.environ.get('JAPANOTE_SCREENSHOTS_THEME', 'light')
 WORDS = ['猫', '犬', '水', '学校', '先生', '電車', '天気', '友達', '勉強', '料理', '映画', '音楽']
 # a sentence, whose furigana JapaNote guesses
 SENTENCE = '明日は友達と一緒に映画を見に行きます。'
-TRANSLATION = 'Tomorrow, I am going to see a movie with a friend.'
 LIST = '漢字\nがっこう\nはし\nyomimasu\n'
 
 FRONT = '<div class="expression">{{Expression}}</div>'
@@ -222,13 +223,7 @@ def _() -> Wait:
 
 @steps.append
 def _() -> Wait:
-    preview = PreviewWindow.instance
-    # as the user would, since there is no definition for a sentence
-    preview.note['Meaning'] = TRANSLATION
-    # so that the card shows the furigana, rather than the details of every kanji
-    preview.note['Kanji'] = ''
-    preview.editor.loadNote()
-    preview.resize(700, 560)
+    PreviewWindow.instance.resize(700, 560)
     return after(2)
 
 
