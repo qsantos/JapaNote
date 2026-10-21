@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator, Mapping
 
 # NOTE: must match FORMAT in japanote/dictionary.py
-FORMAT = 3
+FORMAT = 1
 # patches kept in the manifest, to update from older versions (a few months, with weekly builds)
 MAX_PATCHES = 12
 
@@ -536,7 +536,7 @@ def install(output_dir: str, db_dir: str) -> None:
     package = load_module('package')
     os.makedirs(db_dir, exist_ok=True)
     for filename in os.listdir(output_dir):
-        # e.g. jmdict-v3-202610201234.xz, but not the patches, e.g. jmdict-v3-202610131234-202610201234.xz
+        # e.g. jmdict-v1-202610201234.xz, but not the patches, e.g. jmdict-v1-202610131234-202610201234.xz
         if not re.fullmatch(rf'\w+-v{FORMAT}-[0-9]+\.xz', filename):
             continue
         path = os.path.join(db_dir, filename.split('-')[0] + '.sqlite')

@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from .package import Progress
 
 # NOTE: must match FORMAT in tools/build_dictionaries.py
-FORMAT = 3
+FORMAT = 1
 # entries indexed at a time
 INDEX_BATCH = 4096
 
