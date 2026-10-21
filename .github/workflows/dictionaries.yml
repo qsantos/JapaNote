@@ -46,7 +46,8 @@ jobs:
           JAPANOTE_DB_DIR=db python -m pytest tests
 
       - name: Publish
-        if: github.ref == 'refs/heads/master'
+        # see "unchanged" in build_dictionaries.py
+        if: github.ref == 'refs/heads/master' && hashFiles('dist/unchanged') == ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

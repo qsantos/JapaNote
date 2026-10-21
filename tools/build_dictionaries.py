@@ -408,6 +408,24 @@ def sha256sum(path: str) -> str:
     return digest.hexdigest()
 
 
+def content_digest(path: str) -> str:
+    """A digest of the content of a database, but its version, to tell whether a build changed anything"""
+    digest = hashlib.sha256()
+    db = sqlite3.connect(path)
+    try:
+        tables = [name for (name,) in db.execute("SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name")]
+        for table in tables:
+            digest.update(f'{table}\n'.encode())
+            # in the order of their primary key (or rowid), which does not depend on the order of insertion
+            for row in db.execute(f'SELECT * FROM {table}'):
+                if table == 'meta' and row[0] == 'version':
+                    continue
+                digest.update(f'{row!r}\n'.encode())
+    finally:
+        db.close()
+    return digest.hexdigest()
+
+
 def fetch_previous(base_url: str) -> dict[str, Any] | None:
     """The manifest of the previous build, if it was published in the same format"""
     url = f'{base_url}/manifest-v{FORMAT}.json'
@@ -513,16 +531,27 @@ def build(sources_dir: str, output_dir: str, base_url: str) -> None:
             if patch is not None:
                 # the previous patches lead to the previous version, so they can be chained with this one
                 patches = [*old.get('patches', [])[-(MAX_PATCHES - 1):], patch]
+        content = content_digest(path)
         os.remove(path)
         manifest['dictionaries'][name] = {
             'url': f'{base_url}/{os.path.basename(packaged)}',
             'size': size,
             'sha256': sha256sum(packaged),
+            'content': content,
             'patches': patches,
         }
         assets.add(os.path.basename(packaged))
         assets.update(os.path.basename(patch['url']) for patch in patches)
 
+    if previous is not None and all(
+        previous['dictionaries'].get(name, {}).get('content') == info['content']
+        for name, info in manifest['dictionaries'].items()
+    ):
+        # a new version would make the clients download patches that change nothing, and push the useful
+        # ones out of the manifest
+        print('Nothing changed since the previous build, which should not be replaced')
+        with open(os.path.join(output_dir, 'unchanged'), 'w'):
+            pass
     with open(os.path.join(output_dir, f'manifest-v{FORMAT}.json'), 'w') as f:
         json.dump(manifest, f, indent=4)
     assets.add(f'manifest-v{FORMAT}.json')
