@@ -301,8 +301,20 @@ def _() -> Wait:
     window = PreviewWindow.instance
     log('  preview:', window.message.text(), '|', window.kana.text(), '|', window.definition.toPlainText())
     check(window.definition.toPlainText(), 'meaning from Wikipedia')
+    check(window.example.isVisible() and not window.example.text(), 'no example sentence, but one can be written')
+    details = window.kanji_details.toPlainText().splitlines()
+    check(window.kanji_details.isVisible() and [line[0] for line in details] == list('微分幾何学'), 'kanji details')
+    window.grab().save(os.path.join(BASE_DIR, 'screenshot-preview.png'))
+    window.kanji_details.setPlainText('微 delicate\n分 part')
+    window.example.setText('微分幾何学を勉強する。')
+    window.translation.setText('I study differential geometry.')
     window.on_add()
-    check(find('微分幾何学'), 'added')
+    added = find('微分幾何学')
+    check(added, 'added')
+    example = mw.col.get_note(mw.col.find_notes('Expression:微分幾何学')[0])['Example'] if added else ''
+    check(example == '<b>微分幾何学</b>を勉強する。<br>I study differential geometry.', f'example: {example}')
+    details = mw.col.get_note(mw.col.find_notes('Expression:微分幾何学')[0])['Kanji'] if added else ''
+    check(details == '<b>微</b> delicate<br><b>分</b> part', f'edited kanji details: {details}')
     return None
 
 

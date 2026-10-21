@@ -48,6 +48,6 @@ running. It takes a few minutes, and needs an internet connection, for the audio
 
 It prints the log of the harness, and fails if a check failed. The Anki base directory is kept
 (its path is printed), with the logs of Anki and of the server, and screenshots of the progress
-bars and of the window to add several words.
+bars, of the window to add several words, and of the preview of a note.
 
 Set `JAPANOTE_E2E_PORT` to use another port than 18765 (and build with the matching base URL).

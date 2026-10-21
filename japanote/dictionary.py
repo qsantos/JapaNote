@@ -40,12 +40,12 @@ class Example:
 
     def html(self) -> str:
         """The sentence, with the word in bold, then its translation"""
-        before, form, after = self.japanese.partition(self.form)
+        before, form, after = self.japanese.partition(self.form) if self.form else (self.japanese, '', '')
         if not form:
             before, after = self.japanese, ''
         japanese = escape(before, quote=False) + (f'<b>{escape(form, quote=False)}</b>' if form else '')
         japanese += escape(after, quote=False)
-        return f'{japanese}<br>{escape(self.english, quote=False)}'
+        return '<br>'.join(part for part in (japanese, escape(self.english, quote=False)) if part)
 
 
 @dataclass
@@ -56,11 +56,17 @@ class Kanji:
     on: list[str]
     kun: list[str]
 
-    def html(self) -> str:
-        """e.g. '<b>暗</b> darkness, shade (アン; くら.い, くら.む)'"""
+    def text(self) -> str:
+        """e.g. '暗 darkness, shade (アン; くら.い, くら.む)'"""
         readings = '; '.join(', '.join(readings) for readings in (self.on, self.kun) if readings)
-        text = ', '.join(self.meanings) + (f' ({readings})' if readings else '')
-        return f'<b>{escape(self.literal)}</b> {escape(text, quote=False)}'
+        return f'{self.literal} ' + ', '.join(self.meanings) + (f' ({readings})' if readings else '')
+
+
+def kanji_details_html(lines: list[str]) -> str:
+    """The details of kanji, one per line, each starting with the kanji, which is put in bold (see Kanji.text)"""
+    return '<br>'.join(
+        f'<b>{escape(line[0], quote=False)}</b>{escape(line[1:], quote=False)}' for line in lines if line
+    )
 
 
 @dataclass
@@ -83,6 +89,10 @@ class Word:
     # when the word was found from an inflected form: that form, and its inflections (e.g. 'polite past')
     inflected: str = ''
     inflection: str = ''
+    # the example sentence, and the details of the kanji (see Kanji.text), when they were edited (see
+    # previewwindow.py); otherwise, they are looked up when adding
+    example: Example | None = None
+    kanji_details: list[str] | None = None
 
     def __repr__(self) -> str:
         return f'<{self.kanji}>'
