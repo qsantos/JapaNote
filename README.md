@@ -8,9 +8,9 @@ taking the reading from the article, and the definition from the title of the En
 none of those, such as a sentence, it guesses the furigana. Either way, it lets you check the note before adding it. To browse the results without adding anything,
 including proper nouns that are also common words, use the Search button.
 
-To add a list of words (e.g. the vocabulary of a lesson), paste it in the field, or use the Add several button: each
-line is looked up, and you can check the matches, pick another one when there are several, and skip the words that
-already have a note, before adding them all at once.
+To add a list of words (e.g. the vocabulary of a lesson), paste it in the field, or use the Add several button, which
+can also open a text or CSV file (taking its first column): each line is looked up, and you can check the matches, pick
+another one when there are several, and skip the words that already have a note, before adding them all at once.
 
 Optionally, notes can also get the pitch accent of the word, and a recording by a native speaker from
 [Lingua Libre](https://lingualibre.org/) when there is one (it is fetched in the background, and added to the note a

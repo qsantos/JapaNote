@@ -8,6 +8,7 @@ failed check; it also measures the longest time that the interface did not respo
 """
 from __future__ import annotations
 
+import csv
 import json
 import os
 import sys
@@ -22,13 +23,15 @@ import japanote.config as cfg
 import japanote.download
 import japanote.model
 import japanote.resources as res
-from japanote.batchwindow import BatchWindow
+from japanote.batchwindow import BatchWindow, read_list
 from japanote.previewwindow import PreviewWindow
 from japanote.searchwindow import SearchWindow
 from japanote.settingswindow import CreditsWindow, SettingsWindow
 
 BASE_DIR = os.path.join(os.path.dirname(__file__), '..', '..')
 LOG = open(os.path.join(BASE_DIR, 'harness.log'), 'w', buffering=1)  # noqa: SIM115
+# words in the long list to add
+LONG_LIST = 1000
 # above this, the interface feels frozen
 MAX_FREEZE_MS = 300
 
@@ -100,7 +103,10 @@ def beat() -> None:
     gap = now - heartbeat['last']
     heartbeat['worst'] = max(heartbeat['worst'], gap)
     heartbeat['last'] = now
-    phase = (statuses[-1].split(' ')[0] or 'idle') if statuses else 'startup'
+    if state.get('user action'):
+        phase = 'user action'
+    else:
+        phase = (statuses[-1].split(' ')[0] or 'idle') if statuses else 'startup'
     freezes[phase] = max(freezes.get(phase, 0), round(gap * 1000))
 
 
@@ -128,15 +134,18 @@ def find(expression: str) -> list[tuple[Any, ...]]:
     return [note for note in notes() if note[0] == expression]
 
 
-# (name, function, timeout); a step may return a function telling whether what it started is done
+# (name, function, timeout, whether the user waits for it); a step may return a function telling whether what it
+# started is done
 Wait = Optional[Callable[[], object]]
-steps: list[tuple[str, Callable[[], Wait], float]] = []
+steps: list[tuple[str, Callable[[], Wait], float, bool]] = []
 state: dict[str, Any] = {}
 
 
-def step(name: str, timeout: float = 120) -> Callable[[Callable[[], Wait]], Callable[[], Wait]]:
+def step(
+    name: str, timeout: float = 120, user_action: bool = False,
+) -> Callable[[Callable[[], Wait]], Callable[[], Wait]]:
     def decorator(function: Callable[[], Wait]) -> Callable[[], Wait]:
-        steps.append((name, function, timeout))
+        steps.append((name, function, timeout, user_action))
         return function
     return decorator
 
@@ -360,6 +369,38 @@ def _() -> Wait:
     return None
 
 
+@step('a long list, from a CSV file', user_action=True)
+def _() -> Wait:
+    # the most common words, as a CSV file, with their meanings in the second column
+    path = os.path.join(BASE_DIR, 'words.csv')
+    query = 'SELECT data FROM entry ORDER BY rank, id LIMIT ?'
+    with open(path, 'w', encoding='utf-8-sig', newline='') as f:
+        writer = csv.writer(f)
+        for (data,) in res.jmdict.db.execute(query, (LONG_LIST,)):
+            entry = json.loads(data)
+            writer.writerow([(entry.get('k') or entry['r'])[0]['t'], entry['s'][0]['g'][0]])
+    start = time.perf_counter()
+    BatchWindow.open(read_list(path))
+    elapsed = time.perf_counter() - start
+    window = BatchWindow.instance
+    check(len(window.lines) > LONG_LIST * 0.9, f'{len(window.lines)} lines, from the first column')
+    check(elapsed < 3, f'looked up in {elapsed:.2f} s')
+    window.close()
+    return None
+
+
+@step('a sentence split into lines')
+def _() -> Wait:
+    BatchWindow.open('今日は\n大晦日です。')
+    BatchWindow.instance.on_sentence()
+    check(BatchWindow.instance is None, 'the list window closes')
+    preview = PreviewWindow.instance
+    check(preview is not None and preview.kanji.text() == '今日は大晦日です。', 'the preview of the joined lines')
+    if preview is not None:
+        preview.close()
+    return None
+
+
 @step('an update, with patches', timeout=180)
 def _() -> Wait:
     res.MANIFEST_URL = res.MANIFEST_URL.replace(f'manifest-v{res.FORMAT}.json', 'manifest-newer.json')
@@ -386,8 +427,9 @@ def _() -> Wait:
 def finish() -> None:
     log('statuses:', [status for status in statuses if '%' not in status])
     log(f"longest freeze of the interface: {heartbeat['worst'] * 1000:.0f} ms; by status (ms): {freezes}")
-    # Anki's own startup freezes the interface too; only the add-on's work is checked
-    worst = max(gap for phase, gap in freezes.items() if phase != 'startup')
+    # Anki's own startup freezes the interface too, and so may what the user is waiting for (e.g. opening a
+    # long list); only the work in the background is checked
+    worst = max(gap for phase, gap in freezes.items() if phase not in ('startup', 'user action'))
     check(worst < MAX_FREEZE_MS, f'no freeze of more than {MAX_FREEZE_MS} ms')
     log('DONE')
     mw.close()
@@ -397,7 +439,7 @@ def run(i: int = 0) -> None:
     if i == len(steps):
         finish()
         return
-    name, function, timeout = steps[i]
+    name, function, timeout, state['user action'] = steps[i]
     log(f'== {name}')
     try:
         wait = function()
