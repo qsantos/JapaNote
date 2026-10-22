@@ -14,17 +14,17 @@
 - You can have each card of a new note go into a specific deck.
 - Tag new notes with their JLPT level (e.g. `JLPT::N3`), and `common` for common words.
 
-Available fields, for example for 暗記:
+Available fields, for example for 食べる:
 
-- kanji: 暗記
-- kana: あんき
-- furigana: 暗[あん]記[き]
-- definition: memorization
-- JMdict ID: EntL1586910
-- pitch accent: あ‾んき
-- audio: a recording by a native speaker, when there is one
-- example sentence: この詩を暗記しましょう。 Let's learn this poem by heart.
-- kanji details: 暗 darkness (アン; くら.い), 記 scribe (キ; しる.す)
+- kanji: 食べる
+- kana: たべる
+- furigana: 食[た]べる
+- definition: 1. to eat 2. to live on (e.g. a salary); to live off; to subsist on
+- JMdict ID: EntL1358280
+- pitch accent: たべ＼る (a drop after べ)
+- audio: [taberu.wav](docs/taberu.wav) (by Fukujinzuke, from Lingua Libre, CC BY 4.0)
+- example sentence: もっと果物を**食べる**べきです。 You should eat more fruit.
+- kanji details: **食** eat, food (ショク, ジキ; く.う, く.らう, た.べる, は.む)
 
 ## Dictionaries
 
