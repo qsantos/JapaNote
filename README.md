@@ -4,29 +4,35 @@
 
 ## Features
 
-- Type a word below the deck list, in kanji, kana or romaji, and press Enter.
-- Conjugated words are found by their dictionary form (e.g. 食べました gives 食べる).
-- You see the note before it is added, in the editor of Anki, and can change any field or tag.
-- When several words match, you pick one.
-- Proper nouns are looked up too, and technical words on the Japanese Wikipedia.
-- Furigana are guessed for sentences, and anything else not in the dictionary.
-- Notes that already exist are detected, by their JMdict ID.
-- A list of words can be pasted, or opened from a text or CSV file, and added at once.
-- Notes can also get:
-  - the pitch accent;
-  - an example sentence, with its translation (for about 29,000 words);
-  - the meanings and readings of each kanji;
-  - a recording by a native speaker, when there is one;
-  - tags for the JLPT level and common words.
-- Each card type can go to its own deck.
+- Type a word in kanji, kana or romaji, and press Enter.
+- Type a conjugated word to get its dictionary form (e.g. 食べました gives 食べる).
+- Check the note in the editor of Anki, and change any field or tag, before adding it.
+- Pick the word you want when several match.
+- Look up proper nouns, and technical words on the Japanese Wikipedia.
+- If nothing matches, you still get automatic furigana placement.
+- Paste a list of words, or open a text or CSV file, and add them all at once.
+- You can have each card of a new note go into a specific deck.
+- Tag new notes with their JLPT level (e.g. `JLPT::N3`), and `common` for common words.
+
+Available fields, for example for 暗記:
+
+- kanji: 暗記
+- kana: あんき
+- furigana: 暗[あん]記[き]
+- definition: memorization
+- JMdict ID: EntL1586910
+- pitch accent: あ‾んき
+- audio: a recording by a native speaker, when there is one
+- example sentence: この詩を暗記しましょう。 Let's learn this poem by heart.
+- kanji details: 暗 darkness (アン; くら.い), 記 scribe (キ; しる.す)
 
 ## Dictionaries
 
 - The add-on does not ship any dictionary.
 - On first start, it downloads the main dictionary (about 10 MB).
-- The names dictionary (about 5 MB) is downloaded the first time it is needed.
-- Both are updated in the background, at most once a day, with small patches.
-- They are stored in the `user_files` folder of the add-on.
+- It downloads the names dictionary (about 5 MB) the first time it needs it.
+- It updates both in the background, at most once a day, with small patches.
+- It stores them in its `user_files` folder.
 
 [A workflow](.github/workflows/dictionaries.yml) builds them every week with
 [tools/build_dictionaries.py](tools/build_dictionaries.py). It publishes them in the
