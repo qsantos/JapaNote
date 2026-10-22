@@ -1,7 +1,5 @@
 [Anki add-on](https://ankiweb.net/shared/info/171148684) to quickly make notes for Japanese words.
 
-<img src="docs/screenshots/1-main.png" width="500"> <img src="docs/screenshots/2-preview.png" width="350">
-
 ## Features
 
 - Type a word in kanji, kana or romaji, and press Enter.
@@ -25,6 +23,17 @@ Available fields, for example for 食べる:
 - audio: [taberu.wav](docs/taberu.wav) (by Fukujinzuke, from Lingua Libre, CC BY 4.0)
 - example sentence: もっと果物を**食べる**べきです。 You should eat more fruit.
 - kanji details: **食** eat, food (ショク, ジキ; く.う, く.らう, た.べる, は.む)
+
+## Screenshots
+
+<img src="docs/screenshots/1-main.png" width="400">
+<img src="docs/screenshots/2-preview.png" width="400">
+<img src="docs/screenshots/3-card.png" width="400">
+<img src="docs/screenshots/4-search.png" width="400">
+<img src="docs/screenshots/5-list.png" width="400">
+<img src="docs/screenshots/6-settings.png" width="400">
+<img src="docs/screenshots/7-sentence.png" width="400">
+<img src="docs/screenshots/8-sentence-card.png" width="400">
 
 ## Dictionaries
 
