@@ -211,9 +211,18 @@ def _() -> Wait:
     return None
 
 
-@step('a conjugated word: 食べました', timeout=30)
+@step('a conjugated word: 食べました, whose recording the preview finds', timeout=30)
 def _() -> Wait:
     log('  quick_add ->', quick_add('食べました'))
+    check(PreviewWindow.instance is not None, 'the preview opens')
+    check('Looking for a recording' in PreviewWindow.instance.message.text(), 'the preview looks for a recording')
+    return lambda: PreviewWindow.instance.note['Audio']
+
+
+@step('the conjugated word is added, with its recording')
+def _() -> Wait:
+    log('  audio in the preview:', PreviewWindow.instance.note['Audio'])
+    check('Looking for a recording' not in PreviewWindow.instance.message.text(), 'the preview found the recording')
     check(confirm().startswith('Dictionary form of 食べました (polite past)'), 'the preview names the inflection')
     check(messages[-1] == 'Added 食べる, from 食べました (polite past) (2 cards).', 'the dictionary form is named')
     added = find('食べる')
@@ -222,8 +231,8 @@ def _() -> Wait:
         return None
     check(sorted(added[0][5]) == ['Recognition→Vocab', 'Spelling→Spelling'], 'cards in their decks')
     state['nid'] = mw.col.find_notes('Expression:食べる')[0]
-    # the audio is downloaded in the background
-    return lambda: mw.col.get_note(state['nid'])['Audio']
+    check(mw.col.get_note(state['nid'])['Audio'], 'the recording is added with the note')
+    return None
 
 
 @step('tags, pitch, example, kanji details and audio of 食べる')
@@ -238,6 +247,22 @@ def _() -> Wait:
     if audio.startswith('[sound:'):
         size = os.path.getsize(os.path.join(mw.col.media.dir(), audio[len('[sound:'):-1]))
         check(size > 1000, f'audio file: {size} bytes')
+    return None
+
+
+@step('a word added before its recording is found: 犬', timeout=30)
+def _() -> Wait:
+    log('  quick_add ->', quick_add('犬'))
+    confirm()
+    added = mw.col.find_notes('Expression:犬')
+    check(added and not mw.col.get_note(added[0])['Audio'], 'added without its recording yet')
+    return lambda: added and mw.col.get_note(added[0])['Audio']
+
+
+@step('the recording of 犬 is added to the note')
+def _() -> Wait:
+    note = mw.col.get_note(mw.col.find_notes('Expression:犬')[0])
+    check(note['Audio'].startswith('[sound:'), f'audio: {note["Audio"]}')
     return None
 
 

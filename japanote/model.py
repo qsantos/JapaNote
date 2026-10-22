@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partial
 from gettext import ngettext
 from html import escape
 from typing import TYPE_CHECKING, Any
@@ -17,7 +18,7 @@ from .pitch import pitches_html
 from .settingswindow import SettingsWindow
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable
     from concurrent.futures import Future
 
     from anki.models import NotetypeDict
@@ -53,25 +54,34 @@ def settings_problem(conf: dict[str, Any]) -> str | None:
     return None
 
 
-def add_audio_later(note_id: NoteId, field_name: str, words: list[str]) -> None:
-    """Look for a recording in the background, and add it to the note if one is found"""
-    def on_done(future: Future) -> None:
+def look_up_recording(word: Word, on_done: Callable[[str | None], None]) -> None:
+    """Look for a recording of word in the background, then call on_done with its [sound:…] tag, or None"""
+    def done(future: Future) -> None:
         try:
             recording = future.result()
         except Exception as e:  # noqa: BLE001
             # not worth interrupting the user
             print(f'JapaNote: could not fetch a recording: {e}')
-            return
+            recording = None
         if recording is None:
+            on_done(None)
             return
-        col = get_collection()
-        filename = col.media.write_data(*recording)
-        note = col.get_note(note_id)
-        note[field_name] = f'[sound:{filename}]'
-        col.update_note(note)
+        filename = get_collection().media.write_data(*recording)
+        on_done(f'[sound:{filename}]')
 
     assert mw is not None
-    mw.taskman.run_in_background(lambda: audio.fetch(words), on_done)
+    mw.taskman.run_in_background(lambda: audio.fetch([word.kanji, word.kana]), done)
+
+
+def set_recording(note_id: NoteId, field_name: str, sound: str | None) -> None:
+    """Put a recording in a note that was added, unless its field was filled in the meantime"""
+    if sound is None:
+        return
+    col = get_collection()
+    note = col.get_note(note_id)
+    if not note[field_name].strip():
+        note[field_name] = sound
+        col.update_note(note)
 
 
 def fill_note(note: Note, word: Word, fields: dict[str, str], conf: dict[str, Any]) -> None:
@@ -83,7 +93,7 @@ def fill_note(note: Note, word: Word, fields: dict[str, str], conf: dict[str, An
         'definition': word.definition_html(),
         'id': word.id,
         'pitch': pitches_html(word.kana, word.pitch),
-        # filled later (see add_audio_later)
+        # filled later (see look_up_recording)
         'audio': '',
         'example': '',
         'kanji_details': '',
@@ -184,8 +194,16 @@ def add_notes(words: Iterable[Word]) -> int:
     return add_filled_notes(notes)
 
 
-def add_filled_notes(notes: Iterable[tuple[Word, Note]]) -> int:
-    """Add notes (e.g. as edited in the preview), each made for a word, and return the number of new cards"""
+def wants_recording(note: Note, word: Word, fields: dict[str, str]) -> bool:
+    # sentences (without ID) are never recorded, nor notes that already have a recording
+    return 'audio' in fields and bool(word.id) and not note[fields['audio']].strip()
+
+
+def add_filled_notes(notes: Iterable[tuple[Word, Note]], look_up_recordings: bool = True) -> int:
+    """Add notes (e.g. as edited in the preview), each made for a word, and return the number of new cards
+
+    Unless told not to (e.g. by the preview, which looks for it itself), look for the recording of each note.
+    """
     col = get_collection()
     settings = note_settings()
     if settings is None:
@@ -207,9 +225,8 @@ def add_filled_notes(notes: Iterable[tuple[Word, Note]]) -> int:
         col.add_note(note, deck_id)
         n_new_cards += len(note.card_ids())
         added.append(word)
-        # sentences (without ID) are never recorded, nor notes that already have a recording
-        if 'audio' in fields and word.id and not note[fields['audio']].strip():
-            add_audio_later(note.id, fields['audio'], [word.kanji, word.kana])
+        if look_up_recordings and wants_recording(note, word, fields):
+            look_up_recording(word, partial(set_recording, note.id, fields['audio']))
 
     if n_new_cards == 0:
         if len(duplicates) == 1:
