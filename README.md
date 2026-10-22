@@ -1,46 +1,37 @@
-[Anki add-on](https://ankiweb.net/shared/info/171148684) to quickly make notes for Japanese vocabulary.
-
-Type a word (in kanji, kana or romaji, possibly conjugated) in the field below the deck list, and press Enter: JapaNote
-shows the note it would create, with its kanji, kana, furigana, definition and JMdict ID, telling when it is the
-dictionary form of what you typed (e.g. 食べる, from 食べました, polite past), or already has a note; press Enter again
-to add it, or edit its fields and tags first, in the editor of Anki. When several words match, it lets you pick.
-When no word matches, it looks for a proper noun, then for an article of the Japanese Wikipedia (for technical words,
-taking the reading from the article, and the definition from the title of the English article); for text that is in
-none of those, such as a sentence, it guesses the furigana. Either way, it lets you check the note before adding it. To browse the results without adding anything,
-including proper nouns that are also common words, use the Search button.
+[Anki add-on](https://ankiweb.net/shared/info/171148684) to quickly make notes for Japanese words.
 
 <img src="docs/screenshots/1-main.png" width="500"> <img src="docs/screenshots/2-preview.png" width="350">
 
-To add a list of words (e.g. the vocabulary of a lesson), paste it in the field, or use the Add several button, which
-can also open a text or CSV file (taking its first column): each line is looked up, and you can check the matches, pick
-another one when there are several, and skip the words that already have a note, before adding them all at once.
+## Features
 
-Optionally, notes can also get the pitch accent of the word, an example sentence with its translation (for about
-29,000 words, from Tatoeba, with the word in bold), the meanings and readings of its kanji, and a recording by a
-native speaker from [Lingua Libre](https://lingualibre.org/) when there is one (it is fetched in the background, and
-added to the note a few seconds later). New notes are tagged `japanote` by default, as well as with their JLPT level (e.g. `JLPT::N3`)
-and `common` for common words.
+- Type a word below the deck list, in kanji, kana or romaji, and press Enter.
+- Conjugated words are found by their dictionary form (e.g. 食べました gives 食べる).
+- You see the note before it is added, in the editor of Anki, and can change any field or tag.
+- When several words match, you pick one.
+- Proper nouns are looked up too, and technical words on the Japanese Wikipedia.
+- Furigana are guessed for sentences, and anything else not in the dictionary.
+- Notes that already exist are detected, by their JMdict ID.
+- A list of words can be pasted, or opened from a text or CSV file, and added at once.
+- Notes can also get:
+  - the pitch accent;
+  - an example sentence, with its translation (for about 29,000 words);
+  - the meanings and readings of each kanji;
+  - a recording by a native speaker, when there is one;
+  - tags for the JLPT level and common words.
+- Each card type can go to its own deck.
 
 ## Dictionaries
 
-The add-on does not ship any dictionary. On first start, it downloads the main dictionary (about 10 MB, including the
-data of the sentence analyzer); the names dictionary (about 5 MB) is downloaded the first time it is needed. The
-dictionaries are then updated in the background, at most once a day. Everything is stored in the add-on's
-`user_files` folder.
+- The add-on does not ship any dictionary.
+- On first start, it downloads the main dictionary (about 10 MB).
+- The names dictionary (about 5 MB) is downloaded the first time it is needed.
+- Both are updated in the background, at most once a day, with small patches.
+- They are stored in the `user_files` folder of the add-on.
 
-The dictionaries are built every week by [a workflow](.github/workflows/dictionaries.yml) running
-[tools/build_dictionaries.py](tools/build_dictionaries.py), and published as assets of the
-[dictionaries release](https://github.com/qsantos/JapaNote/releases/tag/dictionaries), in a format that compresses well
-(see [japanote/package.py](japanote/package.py)). Once downloaded, each one is turned into an SQLite database, so
-nothing is parsed when Anki starts.
-
-To update the dictionaries, the add-on downloads patches, which only list the entries that changed since the version
-that is installed, as long as they are smaller than the new version (e.g. about 50 KB for a thousand changed entries).
-
-## Cards in different decks
-
-Each card type of a note type can go to its own deck (e.g. spelling cards in a separate deck): set it in the settings
-of JapaNote, or as the Deck Override of the card type in Anki.
+[A workflow](.github/workflows/dictionaries.yml) builds them every week with
+[tools/build_dictionaries.py](tools/build_dictionaries.py). It publishes them in the
+[dictionaries release](https://github.com/qsantos/JapaNote/releases/tag/dictionaries) (see
+[japanote/package.py](japanote/package.py) for the format).
 
 ## Development
 
@@ -61,11 +52,10 @@ JAPANOTE_MANIFEST_URL=http://127.0.0.1:8000/manifest-v1.json anki
 make -C japanote package
 ```
 
-The add-on must stay compatible with Python 3.9, which Anki 24.06 to 25.02 ship.
-
-The package, `japanote/japanote.ankiaddon`, can be installed from the add-ons window of Anki, with "Install from
-file…". It then replaces the version from AnkiWeb, which keeps updating it. Its `manifest.json` declares the oldest
-version of Anki supported, which must also be set when uploading the package to AnkiWeb, since AnkiWeb ignores it.
+- The add-on must stay compatible with Python 3.9, which Anki 24.06 to 25.02 ship.
+- The package can be installed with "Install from file…" in Anki. It replaces the version from AnkiWeb.
+- AnkiWeb ignores `manifest.json`: set the oldest version of Anki (24.06) when uploading.
+- [tools/e2e](tools/e2e/README.md) tests the add-on in a real Anki, and takes the screenshots.
 
 ## Credits
 
