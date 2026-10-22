@@ -61,3 +61,5 @@ JapaNote fills; set `JAPANOTE_SCREENSHOTS_THEME=dark` for the dark theme:
 ```sh
 JAPANOTE_E2E_HARNESS=tools/e2e/screenshots.py tools/e2e/run.sh ~/.local/share/AnkiProgramFiles/.venv/bin/anki dist
 ```
+
+The listing (`docs/ankiweb.html`) and the README show those of the light theme, from `docs/screenshots`.
