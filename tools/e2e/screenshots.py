@@ -149,7 +149,13 @@ def _() -> Wait:
 @steps.append
 def _() -> Wait:
     preview = PreviewWindow.instance
-    preview.resize(700, 900)
+    preview.resize(700, 980)
+    # the recording, which the preview looks for
+    return lambda: preview.note['Audio']
+
+
+@steps.append
+def _() -> Wait:
     return after(1)
 
 
