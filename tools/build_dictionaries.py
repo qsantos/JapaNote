@@ -434,7 +434,7 @@ def furigana_differ(kanjidic: Iterable[tuple[str, str, str]]) -> Callable[[str, 
     return differ
 
 
-def build_database(  # noqa: PLR0913
+def build_database(  # noqa: PLR0913, PLR0917
     path: str,
     entries_path: str,
     furigana_path: str,

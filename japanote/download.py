@@ -76,7 +76,7 @@ def check_database(path: str, format_: int) -> None:
         raise DownloadError(msg)
 
 
-def install_database(  # noqa: PLR0913
+def install_database(  # noqa: PLR0913, PLR0917
     url: str,
     sha256: str,
     path: str,
@@ -154,7 +154,7 @@ def patch_database(
     return new
 
 
-def update_database(  # noqa: PLR0913
+def update_database(  # noqa: PLR0913, PLR0917
     info: dict[str, Any],
     path: str,
     version: str,

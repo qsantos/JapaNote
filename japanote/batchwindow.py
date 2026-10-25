@@ -176,7 +176,7 @@ class BatchWindow(QMainWindow):
     def on_sentence(self) -> None:
         """Add the text as if it was typed on one line"""
         # NOTE: imported here, since the package imports this module
-        from . import quick_add
+        from . import quick_add  # noqa: PLC0415
 
         text = ''.join(line.strip() for line in self.input.toPlainText().splitlines())
         if text:

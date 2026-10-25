@@ -29,7 +29,7 @@ DAKUTENS = {
 def normalize_reading(reading: str) -> str:
     """Normalize a reading from KANJIDIC2 (e.g. 'くぼ.む' → 'くぼ', '-カタ' → 'かた')"""
     # strip okurigana
-    reading = reading.split('.')[0]
+    reading = reading.split('.', maxsplit=1)[0]
     # remove prefix/suffix marker
     reading = reading.replace('-', '')
     reading = katakana_to_hiragana(reading)
