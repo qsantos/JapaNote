@@ -59,8 +59,9 @@ class PreviewWindow(QDialog):
         self.editor = Editor(mw, fields_area, self, editor_mode=EditorMode.ADD_CARDS)
 
         buttons = QDialogButtonBox()
-        self.add_button = buttons.addButton('Add', QDialogButtonBox.ButtonRole.AcceptRole)
-        assert self.add_button is not None
+        add_button = buttons.addButton('Add', QDialogButtonBox.ButtonRole.AcceptRole)
+        assert add_button is not None
+        self.add_button = add_button
         self.add_button.setDefault(True)
         self.add_button.setToolTip('Add (Ctrl+Enter)')
         buttons.addButton(QDialogButtonBox.StandardButton.Cancel)
